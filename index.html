@@ -11,144 +11,84 @@
   <link href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,500;1,400&display=swap" rel="stylesheet">
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
     html, body {
-      width: 100%; height: 100%;
-      overflow: hidden;
-      background: #000;
-      -webkit-touch-callout: none;
-      -webkit-user-select: none;
-      user-select: none;
-      touch-action: none;
+      width: 100%; height: 100%; overflow: hidden; background: #000;
+      -webkit-touch-callout: none; -webkit-user-select: none;
+      user-select: none; touch-action: none;
     }
+    #canvas { display: block; position: fixed; inset: 0; width: 100%; height: 100%; }
 
-    #canvas {
-      display: block;
-      position: fixed;
-      inset: 0;
-      width: 100%; height: 100%;
-    }
-
-    /* ── Start overlay ───────────────────────────── */
+    /* overlay */
     #overlay {
-      position: fixed; inset: 0;
-      display: flex; flex-direction: column;
+      position: fixed; inset: 0; display: flex; flex-direction: column;
       align-items: center; justify-content: center;
-      background: rgba(0,0,0,0.90);
-      z-index: 20;
+      background: rgba(0,0,0,0.90); z-index: 20;
       font-family: 'EB Garamond', Georgia, serif;
-      color: #fff; text-align: center;
-      padding: 2.5rem;
+      color: #fff; text-align: center; padding: 2.5rem;
     }
-    #overlay h1 {
-      font-size: clamp(2.4rem, 9vw, 3.2rem);
-      font-weight: 400; letter-spacing: 0.04em; margin-bottom: 0.8rem;
-    }
-    #overlay p {
-      font-size: clamp(1rem, 3.8vw, 1.2rem);
-      opacity: 0.60; max-width: 300px; line-height: 1.65;
-    }
+    #overlay h1 { font-size: clamp(2.4rem,9vw,3.2rem); font-weight:400; letter-spacing:.04em; margin-bottom:.8rem; }
+    #overlay p  { font-size: clamp(1rem,3.8vw,1.2rem); opacity:.60; max-width:300px; line-height:1.65; }
     #startBtn {
-      margin-top: 2.5rem; padding: 0.9rem 3rem;
-      background: #fff; color: #000;
-      border: none; border-radius: 100px;
-      font-family: 'EB Garamond', Georgia, serif;
-      font-size: 1.2rem; letter-spacing: 0.04em;
-      cursor: pointer; -webkit-tap-highlight-color: transparent;
+      margin-top: 2.5rem; padding: .9rem 3rem;
+      background: #fff; color: #000; border: none; border-radius: 100px;
+      font-family: 'EB Garamond', Georgia, serif; font-size: 1.2rem;
+      letter-spacing: .04em; cursor: pointer; -webkit-tap-highlight-color: transparent;
     }
 
-    /* ── Threshold slider ────────────────────────── */
+    /* controls */
     #controls {
-      position: fixed;
-      bottom: max(env(safe-area-inset-bottom, 0px), 1rem);
-      left: 0; right: 0;
-      padding: 0 1.5rem 1.25rem;
-      display: none; flex-direction: column;
-      align-items: center; gap: 0.45rem;
-      z-index: 10;
+      position: fixed; bottom: max(env(safe-area-inset-bottom,0px),1rem);
+      left: 0; right: 0; padding: 0 1.5rem 1.25rem;
+      display: none; flex-direction: column; align-items: center; gap: .45rem; z-index: 10;
     }
     #controls label {
-      color: rgba(255,255,255,0.35);
-      font-size: 0.68rem;
-      font-family: ui-monospace, 'SF Mono', monospace;
-      letter-spacing: 0.1em; text-transform: uppercase;
+      color: rgba(255,255,255,.35); font-size: .68rem;
+      font-family: ui-monospace,'SF Mono',monospace; letter-spacing: .1em; text-transform: uppercase;
     }
-    #threshRange {
-      width: 160px;
-      accent-color: rgba(255,255,255,0.55);
-      opacity: 0.55; cursor: pointer;
-    }
+    #threshRange { width:160px; accent-color:rgba(255,255,255,.55); opacity:.55; cursor:pointer; }
 
-    /* ── Mic indicator ───────────────────────────── */
+    /* mic dot */
     #micDot {
-      position: fixed;
-      top: max(env(safe-area-inset-top, 0px), 1rem);
-      left: 1rem;
-      display: none; align-items: center; gap: 0.45rem;
-      z-index: 10;
+      position: fixed; top: max(env(safe-area-inset-top,0px),1rem); left: 1rem;
+      display: none; align-items: center; gap: .45rem; z-index: 10;
     }
     #micDot span {
-      width: 7px; height: 7px; border-radius: 50%;
-      background: #ff4b4b; box-shadow: 0 0 7px #ff4b4b;
+      width:7px; height:7px; border-radius:50%;
+      background:#ff4b4b; box-shadow:0 0 7px #ff4b4b;
       animation: pulse 1.6s ease-in-out infinite;
     }
-    #micDot label {
-      color: rgba(255,255,255,0.4);
-      font-size: 0.68rem;
-      font-family: ui-monospace, 'SF Mono', monospace;
-      letter-spacing: 0.08em;
-    }
-    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
+    #micDot label { color:rgba(255,255,255,.4); font-size:.68rem; font-family:ui-monospace,'SF Mono',monospace; letter-spacing:.08em; }
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.3} }
 
-    /* ── Clear button ────────────────────────────── */
+    /* clear */
     #clearBtn {
-      position: fixed;
-      top: max(env(safe-area-inset-top, 0px), 0.75rem);
-      right: 1rem;
-      padding: 0.4rem 1rem;
-      background: rgba(255,255,255,0.08);
-      border: 1px solid rgba(255,255,255,0.22);
-      border-radius: 100px;
-      color: rgba(255,255,255,0.6);
-      font-size: 0.72rem;
-      font-family: ui-monospace, 'SF Mono', monospace;
-      letter-spacing: 0.06em;
-      cursor: pointer; display: none; z-index: 10;
-      -webkit-tap-highlight-color: transparent;
+      position: fixed; top: max(env(safe-area-inset-top,0px),.75rem); right: 1rem;
+      padding: .4rem 1rem; background:rgba(255,255,255,.08);
+      border: 1px solid rgba(255,255,255,.22); border-radius:100px;
+      color:rgba(255,255,255,.6); font-size:.72rem;
+      font-family:ui-monospace,'SF Mono',monospace; letter-spacing:.06em;
+      cursor:pointer; display:none; z-index:10; -webkit-tap-highlight-color:transparent;
     }
 
-    /* ── Debug panel ─────────────────────────────── */
+    /* debug */
     #debug {
-      position: fixed;
-      bottom: 0; left: 0; right: 0;
-      background: rgba(0,0,0,0.88);
-      border-top: 1px solid rgba(255,255,255,0.12);
-      color: #cfc;
-      font-family: ui-monospace, 'SF Mono', monospace;
-      font-size: 11px;
-      padding: 10px 14px 14px;
-      z-index: 30;
-      display: none;
-      flex-direction: column;
-      gap: 5px;
+      position: fixed; bottom:0; left:0; right:0;
+      background: rgba(0,0,0,.90); border-top: 1px solid rgba(255,255,255,.12);
+      color: #cfc; font-family: ui-monospace,'SF Mono',monospace; font-size:11px;
+      padding: 10px 14px 14px; z-index:30;
+      display:none; flex-direction:column; gap:5px;
     }
-    #debug .dbg-title {
-      color: rgba(255,255,255,0.3);
-      font-size: 9px; letter-spacing: 0.12em;
-      text-transform: uppercase; margin-bottom: 2px;
-    }
-    #debug .row { display: flex; gap: 8px; align-items: baseline; }
-    #debug .lbl { color: rgba(255,255,255,0.35); min-width: 58px; }
-    #debug .val { color: #7fff7f; word-break: break-all; flex: 1; }
-    #debug .err { color: #ff8080; }
-    #debug .dbg-btns { display: flex; gap: 8px; margin-top: 4px; flex-wrap: wrap; }
+    #debug .dtitle { color:rgba(255,255,255,.3); font-size:9px; letter-spacing:.12em; text-transform:uppercase; margin-bottom:2px; }
+    #debug .row { display:flex; gap:8px; align-items:baseline; }
+    #debug .lbl { color:rgba(255,255,255,.35); min-width:58px; }
+    #debug .val { color:#7fff7f; word-break:break-all; flex:1; }
+    #debug .err { color:#ff8080; }
+    #debug .btns { display:flex; gap:8px; margin-top:4px; flex-wrap:wrap; }
     #debug button {
-      background: rgba(255,255,255,0.12);
-      border: 1px solid rgba(255,255,255,0.25);
-      border-radius: 4px; color: #fff;
-      padding: 4px 12px; font-size: 11px;
-      font-family: inherit; cursor: pointer;
-      -webkit-tap-highlight-color: transparent;
+      background:rgba(255,255,255,.12); border:1px solid rgba(255,255,255,.25);
+      border-radius:4px; color:#fff; padding:4px 12px;
+      font-size:11px; font-family:inherit; cursor:pointer;
+      -webkit-tap-highlight-color:transparent;
     }
   </style>
 </head>
@@ -170,9 +110,8 @@
 <div id="micDot"><span></span><label>listening</label></div>
 <button id="clearBtn">clear</button>
 
-<!-- debug panel — shown after start -->
 <div id="debug">
-  <div class="dbg-title">debug</div>
+  <div class="dtitle">debug</div>
   <div class="row"><span class="lbl">video</span><span class="val" id="dbgVideo">—</span></div>
   <div class="row"><span class="lbl">interim</span><span class="val" id="dbgInterim">—</span></div>
   <div class="row"><span class="lbl">final</span><span class="val" id="dbgFinal">—</span></div>
@@ -180,8 +119,9 @@
   <div class="row" id="dbgErrRow" style="display:none">
     <span class="lbl">error</span><span class="err" id="dbgErr">—</span>
   </div>
-  <div class="dbg-btns">
-    <button id="dbgSpawn">spawn test word</button>
+  <div class="btns">
+    <button id="dbgSpawn">spawn test words</button>
+    <button id="dbgFlip">flip cam rotation</button>
     <button id="dbgHide">hide debug</button>
   </div>
 </div>
@@ -190,33 +130,19 @@
 <script>
 'use strict';
 
-/* ═══════════════════════════════════════════════════════
-   CONFIG
-═══════════════════════════════════════════════════════ */
+/* ─── CONFIG ────────────────────────────────────────── */
 const CFG = {
-  gravity:        1.2,
-  restitution:    0.22,
-  friction:       0.60,
-  frictionAir:    0.009,
-  cameraAlpha:    0.40,
-  fontFamily:     '"EB Garamond", Georgia, serif',
-  fontSize:       30,
-  padH:           16,
-  padV:           8,
-  terrainStep:    8,
-  terrainInterval:4,
-  terrainH:       14,
-  threshold:      160,
-  maxWords:       30,
-  minWordLen:     3,
+  gravity: 1.2, restitution: 0.22, friction: 0.60, frictionAir: 0.009,
+  cameraAlpha: 0.40,
+  fontFamily: '"EB Garamond", Georgia, serif',
+  fontSize: 30, padH: 16, padV: 8,
+  terrainStep: 8, terrainInterval: 4, terrainH: 14,
+  threshold: 160, maxWords: 30, minWordLen: 3,
 };
-
 const PALETTE = ['#ffffff','#ffd6a5','#caffbf','#9bf6ff','#bdb2ff','#ffc6ff','#fdffb6'];
 let palIdx = 0;
 
-/* ═══════════════════════════════════════════════════════
-   DEBUG HELPERS
-═══════════════════════════════════════════════════════ */
+/* ─── DEBUG ─────────────────────────────────────────── */
 const dbgPanel   = document.getElementById('debug');
 const dbgVideo   = document.getElementById('dbgVideo');
 const dbgInterim = document.getElementById('dbgInterim');
@@ -224,51 +150,36 @@ const dbgFinal   = document.getElementById('dbgFinal');
 const dbgStatus  = document.getElementById('dbgStatus');
 const dbgErrRow  = document.getElementById('dbgErrRow');
 const dbgErr     = document.getElementById('dbgErr');
-
-function dbg(field, val, isErr) {
-  field.textContent = String(val).slice(0, 120);
+function dbgSet(el, val, isErr) {
+  el.textContent = String(val).slice(0, 140);
   if (isErr) { dbgErrRow.style.display = 'flex'; dbgErr.textContent = val; }
 }
 
-/* ═══════════════════════════════════════════════════════
-   CANVAS
-═══════════════════════════════════════════════════════ */
+/* ─── CANVAS ────────────────────────────────────────── */
 const canvas = document.getElementById('canvas');
 const ctx    = canvas.getContext('2d');
 let W = 0, H = 0;
-
-function resize() {
-  W = canvas.width  = window.innerWidth;
-  H = canvas.height = window.innerHeight;
-}
+function resize() { W = canvas.width = window.innerWidth; H = canvas.height = window.innerHeight; }
 resize();
 
-/* ═══════════════════════════════════════════════════════
-   MATTER.JS
-═══════════════════════════════════════════════════════ */
+/* ─── MATTER.JS ─────────────────────────────────────── */
 const { Engine, Composite, Bodies, Body } = Matter;
-
 const engine = Engine.create();
-engine.gravity.x = 0;
-engine.gravity.y = CFG.gravity;
+engine.gravity.x = 0; engine.gravity.y = CFG.gravity;
 const world = engine.world;
 
 let floor, wallL, wallR;
 function buildBoundaries() {
   if (floor) Composite.remove(world, [floor, wallL, wallR]);
-  floor = Bodies.rectangle(W/2, H+50,  W*3, 80, { isStatic:true, label:'floor' });
-  wallL = Bodies.rectangle(-35, H/2,   70,  H*4,{ isStatic:true, label:'wall'  });
-  wallR = Bodies.rectangle(W+35,H/2,   70,  H*4,{ isStatic:true, label:'wall'  });
+  floor = Bodies.rectangle(W/2,  H+50,   W*3, 80, { isStatic:true, label:'floor' });
+  wallL = Bodies.rectangle(-35,  H/2,    70,  H*4,{ isStatic:true, label:'wall'  });
+  wallR = Bodies.rectangle(W+35, H/2,    70,  H*4,{ isStatic:true, label:'wall'  });
   Composite.add(world, [floor, wallL, wallR]);
 }
 buildBoundaries();
 
-/* ═══════════════════════════════════════════════════════
-   TERRAIN
-═══════════════════════════════════════════════════════ */
-let terrainBodies = [];
-let numCols = 0;
-
+/* ─── TERRAIN BODIES ────────────────────────────────── */
+let terrainBodies = [], numCols = 0;
 function initTerrain() {
   terrainBodies.forEach(b => Composite.remove(world, b));
   terrainBodies = [];
@@ -277,7 +188,7 @@ function initTerrain() {
     const b = Bodies.rectangle(
       i * CFG.terrainStep + CFG.terrainStep / 2, H + 9999,
       CFG.terrainStep + 2, CFG.terrainH,
-      { isStatic:true, label:'terrain', restitution:0.06, friction:0.9, frictionStatic:1.0 }
+      { isStatic:true, label:'terrain', restitution:0.06, friction:0.9, frictionStatic:1 }
     );
     terrainBodies.push(b);
     Composite.add(world, b);
@@ -285,96 +196,116 @@ function initTerrain() {
 }
 initTerrain();
 
-/* ═══════════════════════════════════════════════════════
-   CAMERA  — contain-fit (no crop, no distortion)
-═══════════════════════════════════════════════════════ */
+/* ─── CAMERA ────────────────────────────────────────── */
 let video   = null;
-let aCanvas = null;
-let aCtx    = null;
-let videoFit = { scale:1, dx:0, dy:0, drawW:0, drawH:0 };
+// aCanvas is sized W×H (display space) so its pixels align with display coords.
+// This makes terrain scanning trivially correct — no coordinate mapping needed.
+let aCanvas = null, aCtx = null;
+
+// When the sensor gives landscape (vw>vh), we rotate 90° to fill portrait screen.
+// rotDir: +1 = CW (Math.PI/2), -1 = CCW (-Math.PI/2). Toggleable via debug.
+let rotDir = 1;
+
+let videoFit = { needsRot:false, scale:1, drawW:0, drawH:0, dx:0, dy:0 };
 
 function computeVideoFit() {
   if (!video || !video.videoWidth) return;
-  const vw = video.videoWidth;
-  const vh = video.videoHeight;
-  /* contain (Math.min): show full camera, letterbox if aspect differs */
-  const scale = Math.min(W / vw, H / vh);
-  videoFit = {
-    scale,
-    drawW: vw * scale,
-    drawH: vh * scale,
-    dx: (W - vw * scale) / 2,
-    dy: (H - vh * scale) / 2,
+  const vw = video.videoWidth, vh = video.videoHeight;
+  const needsRot = vw > vh;
+
+  // Effective portrait dimensions after rotation
+  const pw = needsRot ? vh : vw;
+  const ph = needsRot ? vw : vh;
+
+  // Cover-fit: fill the screen, crop excess
+  const scale = Math.max(W / pw, H / ph);
+
+  videoFit = { needsRot, scale, vw, vh,
+    drawW: pw * scale, drawH: ph * scale,
+    dx: (W - pw * scale) / 2, dy: (H - ph * scale) / 2,
   };
-  dbg(dbgVideo, `${vw}×${vh} → scale ${scale.toFixed(3)} fit ${Math.round(vw*scale)}×${Math.round(vh*scale)}`);
+  dbgSet(dbgVideo, `${vw}×${vh} ${needsRot?'landscape→rotated':'portrait'} scale=${scale.toFixed(3)} draw=${Math.round(pw*scale)}×${Math.round(ph*scale)}`);
+}
+
+/* Draw video onto any ctx with the correct rotation, mirror, and cover-fit.
+   alpha: if provided, sets globalAlpha before draw.                        */
+function drawVideo(targetCtx, alpha) {
+  if (!video || video.readyState < 2) return;
+  const { needsRot, scale, vw, vh, drawW, drawH, dx, dy } = videoFit;
+
+  targetCtx.save();
+  if (alpha !== undefined) targetCtx.globalAlpha = alpha;
+
+  if (needsRot) {
+    /* Landscape sensor → rotate 90° to fill portrait screen.
+       Center the draw area, rotate, then mirror for selfie.
+       cx, cy = center of the drawn image in display space.    */
+    const cx = dx + drawW / 2;
+    const cy = dy + drawH / 2;
+    targetCtx.translate(cx, cy);
+    targetCtx.rotate(rotDir * Math.PI / 2);
+    targetCtx.scale(-1, 1);  // selfie mirror (applied in rotated space)
+    /* After rotation the video's vw→screen-height, vh→screen-width.
+       Scale is computed on rotated dims, so:
+         vw*scale covers drawH (portrait height)
+         vh*scale covers drawW (portrait width)               */
+    targetCtx.drawImage(video, -vw * scale / 2, -vh * scale / 2, vw * scale, vh * scale);
+  } else {
+    /* Portrait sensor — straightforward mirror + cover-fit. */
+    targetCtx.translate(W, 0);
+    targetCtx.scale(-1, 1);
+    targetCtx.drawImage(video, dx, dy, drawW, drawH);
+  }
+
+  targetCtx.restore();
 }
 
 async function startCamera() {
   video = document.createElement('video');
-  video.playsInline = true;
-  video.muted       = true;
-  video.autoplay    = true;
+  video.playsInline = true; video.muted = true; video.autoplay = true;
 
   const stream = await navigator.mediaDevices.getUserMedia({
-    video: {
-      facingMode: 'user',
-      width:  { ideal: window.innerWidth },
-      height: { ideal: window.innerHeight },
-    },
+    video: { facingMode: 'user' },
     audio: false,
   });
-
   video.srcObject = stream;
   await video.play();
 
+  // Analysis canvas in DISPLAY space (W×H) — see drawVideo + updateTerrain
   aCanvas = document.createElement('canvas');
-  aCanvas.width  = video.videoWidth  || 390;
-  aCanvas.height = video.videoHeight || 844;
+  aCanvas.width  = W;
+  aCanvas.height = H;
   aCtx = aCanvas.getContext('2d', { willReadFrequently: true });
 
   computeVideoFit();
 }
 
-/* ═══════════════════════════════════════════════════════
-   TERRAIN UPDATE
-═══════════════════════════════════════════════════════ */
+/* ─── TERRAIN UPDATE ────────────────────────────────── */
 function updateTerrain() {
   if (!video || !aCtx || video.readyState < 2) return;
 
-  const vW = aCanvas.width;
-  const vH = aCanvas.height;
+  // Draw video into aCanvas using the SAME transform as the display.
+  // Because aCanvas is W×H, pixel (x,y) in aCanvas == display pixel (x,y).
+  // No coordinate mapping needed for terrain placement.
+  aCtx.clearRect(0, 0, W, H);
+  drawVideo(aCtx); // full brightness (no alpha arg)
 
-  /* un-mirrored draw → raw video coordinates */
-  aCtx.drawImage(video, 0, 0, vW, vH);
-  const img = aCtx.getImageData(0, 0, vW, vH).data;
+  const img = aCtx.getImageData(0, 0, W, H).data;
   const thr = CFG.threshold;
-  const { scale, dx, dy } = videoFit;
 
   for (let i = 0; i < numCols; i++) {
     const dispX = i * CFG.terrainStep + CFG.terrainStep / 2;
 
-    /* mirror + contain-fit: screen_x = W - dx - (vx/vW)*drawW
-       → vx = (W - dx - dispX) / scale                          */
-    const vx   = (W - dx - dispX) / scale;
-    const vidX = Math.round(vx);
-
-    if (vidX < 0 || vidX >= vW) {
-      Body.setPosition(terrainBodies[i], { x: dispX, y: H + 9999 });
-      terrainBodies[i].positionPrev.x = dispX;
-      terrainBodies[i].positionPrev.y = H + 9999;
-      continue;
-    }
-
-    let topVidY = -1;
-    for (let vy = 0; vy < vH; vy++) {
-      const base = (vy * vW + vidX) * 4;
+    // Scan this display column top-to-bottom
+    let topY = -1;
+    for (let vy = 0; vy < H; vy++) {
+      const base = (vy * W + Math.round(dispX)) * 4;
       const luma = (img[base]*299 + img[base+1]*587 + img[base+2]*114) / 1000;
-      if (luma < thr) { topVidY = vy; break; }
+      if (luma < thr) { topY = vy; break; }
     }
 
-    if (topVidY >= 0) {
-      const dispY = topVidY * scale + dy;
-      const ny    = dispY + CFG.terrainH / 2;
+    if (topY >= 0) {
+      const ny = topY + CFG.terrainH / 2;
       Body.setPosition(terrainBodies[i], { x: dispX, y: ny });
       terrainBodies[i].positionPrev.x = dispX;
       terrainBodies[i].positionPrev.y = ny;
@@ -386,35 +317,22 @@ function updateTerrain() {
   }
 }
 
-/* ═══════════════════════════════════════════════════════
-   WORDS
-═══════════════════════════════════════════════════════ */
+/* ─── WORDS ─────────────────────────────────────────── */
 let words = [];
-
 function fontStr() { return `${CFG.fontSize}px ${CFG.fontFamily}`; }
-
 function measureWord(text) {
-  ctx.save();
-  ctx.font = fontStr();
+  ctx.save(); ctx.font = fontStr();
   const m = ctx.measureText(text);
   ctx.restore();
   return { w: m.width + CFG.padH * 2, h: CFG.fontSize + CFG.padV * 2 };
 }
-
 function spawnWord(text) {
-  if (words.length >= CFG.maxWords) {
-    const old = words.shift();
-    Composite.remove(world, old.body);
-  }
+  if (words.length >= CFG.maxWords) { const o = words.shift(); Composite.remove(world, o.body); }
   const { w, h } = measureWord(text);
   const x = w/2 + Math.random() * Math.max(0, W - w);
-  const y = -(h + 20);
-
-  const body = Bodies.rectangle(x, y, w, h, {
-    restitution: CFG.restitution,
-    friction:    CFG.friction,
-    frictionAir: CFG.frictionAir,
-    label: 'word',
+  const body = Bodies.rectangle(x, -(h+20), w, h, {
+    restitution: CFG.restitution, friction: CFG.friction,
+    frictionAir: CFG.frictionAir, label: 'word',
   });
   Body.setAngularVelocity(body, (Math.random() - 0.5) * 0.12);
   Composite.add(world, body);
@@ -423,162 +341,118 @@ function spawnWord(text) {
 
 function drawPill(cx, x, y, w, h, r) {
   cx.beginPath();
-  cx.moveTo(x+r, y);
-  cx.lineTo(x+w-r, y);
-  cx.quadraticCurveTo(x+w, y,   x+w, y+r);
-  cx.lineTo(x+w, y+h-r);
-  cx.quadraticCurveTo(x+w, y+h, x+w-r, y+h);
-  cx.lineTo(x+r, y+h);
-  cx.quadraticCurveTo(x, y+h,   x, y+h-r);
-  cx.lineTo(x, y+r);
-  cx.quadraticCurveTo(x, y,     x+r, y);
+  cx.moveTo(x+r,y); cx.lineTo(x+w-r,y);
+  cx.quadraticCurveTo(x+w,y,   x+w,y+r);
+  cx.lineTo(x+w,y+h-r);
+  cx.quadraticCurveTo(x+w,y+h, x+w-r,y+h);
+  cx.lineTo(x+r,y+h);
+  cx.quadraticCurveTo(x,y+h,   x,y+h-r);
+  cx.lineTo(x,y+r);
+  cx.quadraticCurveTo(x,y,     x+r,y);
   cx.closePath();
 }
 
-/* ═══════════════════════════════════════════════════════
-   SPEECH RECOGNITION
-═══════════════════════════════════════════════════════ */
-let recognition  = null;
-let speechActive = false;
+/* ─── SPEECH ────────────────────────────────────────── */
+let recognition = null, speechActive = false;
 const micDot = document.getElementById('micDot');
-
-function cleanWord(raw) {
-  return raw.replace(/[^a-zA-Z'\u2019\-]/g, '');
-}
+function cleanWord(r) { return r.replace(/[^a-zA-Z'\u2019\-]/g,''); }
 
 async function startSpeech() {
   const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-  if (!SR) {
-    dbg(dbgStatus, 'ERROR: SpeechRecognition not available', true);
-    return;
-  }
+  if (!SR) { dbgSet(dbgStatus,'ERROR: no SpeechRecognition',true); return; }
 
-  /* Explicitly request mic via getUserMedia first — this is what
-     makes the iOS permission popup actually appear.               */
-  dbg(dbgStatus, 'requesting mic permission…');
+  dbgSet(dbgStatus,'requesting mic…');
   try {
-    const s = await navigator.mediaDevices.getUserMedia({ audio: true });
+    const s = await navigator.mediaDevices.getUserMedia({ audio:true });
     s.getTracks().forEach(t => t.stop());
-    dbg(dbgStatus, 'mic granted, starting recognition…');
-  } catch (err) {
-    dbg(dbgStatus, `mic denied: ${err.message}`, true);
-    alert('Microphone access denied.\nGo to Settings → Safari → Microphone.');
+    dbgSet(dbgStatus,'mic granted, starting…');
+  } catch(e) {
+    dbgSet(dbgStatus,`mic denied: ${e.message}`,true);
+    alert('Microphone denied.\nSettings → Safari → Microphone.');
     return;
   }
 
   recognition = new SR();
-  recognition.continuous      = true;
-  recognition.interimResults  = true;
-  recognition.lang            = 'en-US';
-  recognition.maxAlternatives = 1;
+  recognition.continuous = true; recognition.interimResults = true;
+  recognition.lang = 'en-US'; recognition.maxAlternatives = 1;
 
-  let interimSpawned = new Set();
-  let lastInterimTip = '';
+  let interimSpawned = new Set(), lastTip = '';
 
-  recognition.onresult = (e) => {
+  recognition.onresult = e => {
     for (let i = e.resultIndex; i < e.results.length; i++) {
-      const result     = e.results[i];
-      const transcript = result[0].transcript;
-
-      if (result.isFinal) {
-        dbg(dbgFinal, transcript);
-        const finalWords = transcript.trim().split(/\s+/)
-          .map(cleanWord).filter(w => w.length > CFG.minWordLen);
-        finalWords.forEach(w => {
+      const r = e.results[i], t = r[0].transcript;
+      if (r.isFinal) {
+        dbgSet(dbgFinal, t);
+        t.trim().split(/\s+/).map(cleanWord).filter(w=>w.length>CFG.minWordLen).forEach(w=>{
           if (!interimSpawned.has(w.toLowerCase())) spawnWord(w);
         });
-        interimSpawned.clear();
-        lastInterimTip = '';
+        interimSpawned.clear(); lastTip = '';
       } else {
-        dbg(dbgInterim, transcript);
-        const parts = transcript.trim().split(/\s+/);
-        const tip   = cleanWord(parts[parts.length - 1]);
-        if (tip.length > CFG.minWordLen && tip.toLowerCase() !== lastInterimTip.toLowerCase()) {
-          spawnWord(tip);
-          interimSpawned.add(tip.toLowerCase());
-          lastInterimTip = tip;
+        dbgSet(dbgInterim, t);
+        const tip = cleanWord(t.trim().split(/\s+/).pop());
+        if (tip.length > CFG.minWordLen && tip.toLowerCase() !== lastTip.toLowerCase()) {
+          spawnWord(tip); interimSpawned.add(tip.toLowerCase()); lastTip = tip;
         }
       }
     }
   };
 
-  recognition.onerror = (e) => {
-    dbg(dbgStatus, `speech error: ${e.error}`, e.error === 'not-allowed');
-    if (e.error === 'not-allowed') {
-      alert('Microphone access denied.\nGo to Settings → Safari → Microphone.');
-    }
+  recognition.onerror = e => {
+    dbgSet(dbgStatus,`error: ${e.error}`, e.error==='not-allowed');
+    if (e.error==='not-allowed') alert('Microphone denied.\nSettings → Safari → Microphone.');
   };
-
-  recognition.onstart = () => {
-    micDot.style.display = 'flex';
-    dbg(dbgStatus, 'recognition active ✓');
-  };
-
-  recognition.onend = () => {
-    if (speechActive) {
-      dbg(dbgStatus, 'restarting…');
-      setTimeout(() => { if (speechActive) recognition.start(); }, 300);
-    } else {
-      micDot.style.display = 'none';
-      dbg(dbgStatus, 'stopped');
-    }
+  recognition.onstart = () => { micDot.style.display='flex'; dbgSet(dbgStatus,'active ✓'); };
+  recognition.onend   = () => {
+    if (speechActive) { dbgSet(dbgStatus,'restarting…'); setTimeout(()=>{ if(speechActive) recognition.start(); },300); }
+    else { micDot.style.display='none'; dbgSet(dbgStatus,'stopped'); }
   };
 
   speechActive = true;
   recognition.start();
 }
 
-/* ═══════════════════════════════════════════════════════
-   DEVICE ORIENTATION
-═══════════════════════════════════════════════════════ */
+/* ─── DEVICE ORIENTATION ────────────────────────────── */
 function setupTilt() {
-  function onOrientation(e) {
-    if (e.gamma == null) return;
-    engine.gravity.x = Math.max(-2, Math.min(2, e.gamma / 40));
+  function onOri(e) {
+    if (e.gamma==null) return;
+    engine.gravity.x = Math.max(-2, Math.min(2, e.gamma/40));
   }
-  if (typeof DeviceOrientationEvent !== 'undefined' &&
-      typeof DeviceOrientationEvent.requestPermission === 'function') {
+  if (typeof DeviceOrientationEvent!=='undefined' &&
+      typeof DeviceOrientationEvent.requestPermission==='function') {
     DeviceOrientationEvent.requestPermission()
-      .then(s => { if (s === 'granted') window.addEventListener('deviceorientation', onOrientation); })
-      .catch(() => {});
+      .then(s=>{ if(s==='granted') window.addEventListener('deviceorientation',onOri); })
+      .catch(()=>{});
   } else {
-    window.addEventListener('deviceorientation', onOrientation);
+    window.addEventListener('deviceorientation', onOri);
   }
 }
 
-/* ═══════════════════════════════════════════════════════
-   RENDER LOOP
-═══════════════════════════════════════════════════════ */
+/* ─── RENDER LOOP ───────────────────────────────────── */
 let frame = 0;
-
 (function loop() {
   requestAnimationFrame(loop);
-  Engine.update(engine, 1000 / 60);
+  Engine.update(engine, 1000/60);
   if (++frame % CFG.terrainInterval === 0) updateTerrain();
 
+  // Background
   ctx.fillStyle = '#0a0a0a';
   ctx.fillRect(0, 0, W, H);
 
-  /* camera — mirrored, contain-fit */
-  if (video && video.readyState >= 2) {
-    const { dx, dy, drawW, drawH } = videoFit;
-    ctx.save();
-    ctx.globalAlpha = CFG.cameraAlpha;
-    ctx.translate(W, 0);
-    ctx.scale(-1, 1);
-    ctx.drawImage(video, dx, dy, drawW, drawH);
-    ctx.restore();
-  }
+  // Camera — drawVideo handles rotation + mirror internally
+  drawVideo(ctx, CFG.cameraAlpha);
 
+  // EXPLICITLY reset transform to identity before drawing words.
+  // This guards against any transform leakage from the camera draw.
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.globalAlpha = 1;
+
+  // Words
   ctx.font = fontStr();
   ctx.textAlign    = 'center';
   ctx.textBaseline = 'middle';
 
   words = words.filter(({ body, text, w, h, color }) => {
-    if (body.position.y - h/2 > H + 60) {
-      Composite.remove(world, body);
-      return false;
-    }
+    if (body.position.y - h/2 > H + 60) { Composite.remove(world, body); return false; }
     const { x, y } = body.position;
     ctx.save();
     ctx.translate(x, y);
@@ -593,19 +467,16 @@ let frame = 0;
   });
 })();
 
-/* ═══════════════════════════════════════════════════════
-   RESIZE
-═══════════════════════════════════════════════════════ */
+/* ─── RESIZE ────────────────────────────────────────── */
 window.addEventListener('resize', () => {
   resize();
   buildBoundaries();
   initTerrain();
   computeVideoFit();
+  if (aCanvas) { aCanvas.width = W; aCanvas.height = H; }
 });
 
-/* ═══════════════════════════════════════════════════════
-   START FLOW
-═══════════════════════════════════════════════════════ */
+/* ─── START ─────────────────────────────────────────── */
 const overlay     = document.getElementById('overlay');
 const startBtn    = document.getElementById('startBtn');
 const controls    = document.getElementById('controls');
@@ -613,42 +484,32 @@ const threshRange = document.getElementById('threshRange');
 const clearBtn    = document.getElementById('clearBtn');
 
 startBtn.addEventListener('click', async () => {
-  overlay.style.display = 'none';
-  dbgPanel.style.display = 'flex';
-  controls.style.display = 'flex';
-  clearBtn.style.display = 'block';
+  overlay.style.display   = 'none';
+  dbgPanel.style.display  = 'flex';
+  controls.style.display  = 'flex';
+  clearBtn.style.display  = 'block';
 
-  /* Camera and mic run concurrently so neither blocks the other.
-     Speech is kicked off first so recognition.start() is called
-     as soon as possible after the tap gesture.                   */
-  const speechPromise = startSpeech();
+  const speechP = startSpeech();   // start early, stays within gesture context
 
-  try {
-    await startCamera();
-  } catch (err) {
-    dbg(dbgStatus, `camera failed: ${err.message}`, true);
-  }
+  try { await startCamera(); }
+  catch(e) { dbgSet(dbgStatus, `cam fail: ${e.message}`, true); }
 
-  await speechPromise;
+  await speechP;
   setupTilt();
 });
 
 threshRange.addEventListener('input', () => { CFG.threshold = +threshRange.value; });
-
-clearBtn.addEventListener('click', () => {
-  words.forEach(({ body }) => Composite.remove(world, body));
-  words = [];
-});
+clearBtn.addEventListener('click', () => { words.forEach(({body})=>Composite.remove(world,body)); words=[]; });
 
 document.getElementById('dbgSpawn').addEventListener('click', () => {
-  spawnWord('hello');
-  spawnWord('world');
-  dbg(dbgStatus, 'spawned test words');
+  spawnWord('hello'); spawnWord('world'); dbgSet(dbgStatus,'spawned test words');
 });
-
-document.getElementById('dbgHide').addEventListener('click', () => {
-  dbgPanel.style.display = 'none';
+document.getElementById('dbgFlip').addEventListener('click', () => {
+  rotDir *= -1;
+  computeVideoFit();  // recompute fit label
+  dbgSet(dbgStatus, `cam rotation flipped → ${rotDir===1?'CW':'CCW'}`);
 });
+document.getElementById('dbgHide').addEventListener('click', () => { dbgPanel.style.display='none'; });
 </script>
 </body>
 </html>
