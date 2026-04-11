@@ -1,0 +1,618 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <title>Body Canvas</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,500;1,400&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    html, body {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background: #000;
+      -webkit-touch-callout: none;
+      -webkit-user-select: none;
+      user-select: none;
+      touch-action: none;
+    }
+
+    #canvas {
+      display: block;
+      position: fixed;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+    }
+
+    /* ── Start overlay ────────────────────────────── */
+    #overlay {
+      position: fixed;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      background: rgba(0, 0, 0, 0.90);
+      z-index: 20;
+      font-family: 'EB Garamond', Georgia, serif;
+      color: #fff;
+      text-align: center;
+      padding: 2.5rem;
+    }
+
+    #overlay h1 {
+      font-size: clamp(2.4rem, 9vw, 3.2rem);
+      font-weight: 400;
+      letter-spacing: 0.04em;
+      margin-bottom: 0.8rem;
+    }
+
+    #overlay p {
+      font-size: clamp(1rem, 3.8vw, 1.2rem);
+      opacity: 0.60;
+      max-width: 300px;
+      line-height: 1.65;
+    }
+
+    #startBtn {
+      margin-top: 2.5rem;
+      padding: 0.9rem 3rem;
+      background: #fff;
+      color: #000;
+      border: none;
+      border-radius: 100px;
+      font-family: 'EB Garamond', Georgia, serif;
+      font-size: 1.2rem;
+      letter-spacing: 0.04em;
+      cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    /* ── In-session controls ──────────────────────── */
+    #controls {
+      position: fixed;
+      bottom: max(env(safe-area-inset-bottom, 0px), 1rem);
+      left: 0;
+      right: 0;
+      padding: 0 1.5rem 1.25rem;
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.45rem;
+      z-index: 10;
+    }
+
+    #controls label {
+      color: rgba(255, 255, 255, 0.35);
+      font-size: 0.68rem;
+      font-family: ui-monospace, 'SF Mono', monospace;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+    }
+
+    #threshRange {
+      width: 160px;
+      accent-color: rgba(255, 255, 255, 0.55);
+      opacity: 0.55;
+      cursor: pointer;
+    }
+
+    #clearBtn {
+      position: fixed;
+      top: max(env(safe-area-inset-top, 0px), 0.75rem);
+      right: 1rem;
+      padding: 0.4rem 1rem;
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.22);
+      border-radius: 100px;
+      color: rgba(255, 255, 255, 0.6);
+      font-size: 0.72rem;
+      font-family: ui-monospace, 'SF Mono', monospace;
+      letter-spacing: 0.06em;
+      cursor: pointer;
+      display: none;
+      z-index: 10;
+      -webkit-tap-highlight-color: transparent;
+    }
+  </style>
+</head>
+<body>
+
+<canvas id="canvas"></canvas>
+
+<div id="overlay">
+  <h1>Body Canvas</h1>
+  <p>Stand in front of a light wall or window.<br>Speak — your words will fall.</p>
+  <button id="startBtn">Tap to Begin</button>
+</div>
+
+<div id="controls">
+  <label>brightness threshold</label>
+  <input type="range" id="threshRange" min="40" max="240" value="160">
+</div>
+
+<button id="clearBtn">clear</button>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/matter-js/0.19.0/matter.min.js"></script>
+<script>
+'use strict';
+
+/* ═══════════════════════════════════════════════════════
+   CONFIG
+═══════════════════════════════════════════════════════ */
+const CFG = {
+  /* physics */
+  gravity:        1.2,
+  restitution:    0.22,
+  friction:       0.60,
+  frictionAir:    0.009,
+
+  /* rendering */
+  cameraAlpha:    0.40,
+  fontFamily:     '"EB Garamond", Georgia, serif',
+  fontSize:       30,     /* px */
+  padH:           16,     /* horizontal padding inside word pill */
+  padV:           8,      /* vertical padding */
+
+  /* terrain */
+  terrainStep:    8,      /* px between sampled columns */
+  terrainInterval:4,      /* update terrain every N frames */
+  terrainH:       14,     /* height of each terrain strip body */
+  threshold:      160,    /* initial brightness threshold 0–255 */
+
+  /* words */
+  maxWords:       30,
+  minWordLen:     3,
+};
+
+/* word colour palette — cycling */
+const PALETTE = [
+  '#ffffff', '#ffd6a5', '#caffbf',
+  '#9bf6ff', '#bdb2ff', '#ffc6ff', '#fdffb6',
+];
+let palIdx = 0;
+
+/* ═══════════════════════════════════════════════════════
+   CANVAS
+═══════════════════════════════════════════════════════ */
+const canvas = document.getElementById('canvas');
+const ctx    = canvas.getContext('2d');
+let W = 0, H = 0;
+
+function resize() {
+  W = canvas.width  = window.innerWidth;
+  H = canvas.height = window.innerHeight;
+}
+resize();
+
+/* ═══════════════════════════════════════════════════════
+   MATTER.JS
+═══════════════════════════════════════════════════════ */
+const { Engine, Composite, Bodies, Body } = Matter;
+
+const engine = Engine.create();
+engine.gravity.x = 0;
+engine.gravity.y = CFG.gravity;
+const world = engine.world;
+
+/* boundaries */
+let floor, wallL, wallR;
+function buildBoundaries() {
+  if (floor) Composite.remove(world, [floor, wallL, wallR]);
+  floor = Bodies.rectangle(W / 2, H + 50, W * 3, 80, { isStatic: true, label: 'floor' });
+  wallL = Bodies.rectangle(-35,  H / 2, 70, H * 4, { isStatic: true, label: 'wall' });
+  wallR = Bodies.rectangle(W + 35, H / 2, 70, H * 4, { isStatic: true, label: 'wall' });
+  Composite.add(world, [floor, wallL, wallR]);
+}
+buildBoundaries();
+
+/* ═══════════════════════════════════════════════════════
+   TERRAIN — pre-allocated strip bodies
+═══════════════════════════════════════════════════════ */
+let terrainBodies = [];
+let numCols = 0;
+
+function initTerrain() {
+  terrainBodies.forEach(b => Composite.remove(world, b));
+  terrainBodies = [];
+  numCols = Math.ceil(W / CFG.terrainStep) + 1;
+
+  for (let i = 0; i < numCols; i++) {
+    const b = Bodies.rectangle(
+      i * CFG.terrainStep + CFG.terrainStep / 2,
+      H + 9999,                  /* parked off-screen */
+      CFG.terrainStep + 2,       /* slight overlap prevents gaps */
+      CFG.terrainH,
+      {
+        isStatic: true,
+        label: 'terrain',
+        restitution: 0.06,
+        friction: 0.90,
+        frictionStatic: 1.0,
+      }
+    );
+    terrainBodies.push(b);
+    Composite.add(world, b);
+  }
+}
+initTerrain();
+
+/* ═══════════════════════════════════════════════════════
+   CAMERA
+═══════════════════════════════════════════════════════ */
+let video   = null;
+let aCanvas = null;   /* off-screen analysis canvas */
+let aCtx    = null;
+
+async function startCamera() {
+  video = document.createElement('video');
+  video.playsInline = true;
+  video.muted       = true;
+  video.autoplay    = true;
+
+  const stream = await navigator.mediaDevices.getUserMedia({
+    video: {
+      facingMode: 'user',
+      width:  { ideal: 390 },
+      height: { ideal: 844 },
+    },
+    audio: false,
+  });
+
+  video.srcObject = stream;
+  await video.play();
+
+  aCanvas        = document.createElement('canvas');
+  aCanvas.width  = video.videoWidth  || 390;
+  aCanvas.height = video.videoHeight || 844;
+  aCtx = aCanvas.getContext('2d', { willReadFrequently: true });
+}
+
+/* ═══════════════════════════════════════════════════════
+   TERRAIN UPDATE
+   Scan each column top-to-bottom; first dark pixel
+   (brightness < threshold) is the top of the body.
+═══════════════════════════════════════════════════════ */
+function updateTerrain() {
+  if (!video || !aCtx || video.readyState < 2) return;
+
+  const vW = aCanvas.width;
+  const vH = aCanvas.height;
+
+  /* draw mirrored frame into analysis canvas so x-coords
+     match the mirrored display */
+  aCtx.save();
+  aCtx.translate(vW, 0);
+  aCtx.scale(-1, 1);
+  aCtx.drawImage(video, 0, 0, vW, vH);
+  aCtx.restore();
+
+  const img  = aCtx.getImageData(0, 0, vW, vH).data;
+  const thr  = CFG.threshold;
+  const scX  = vW / W;
+  const scY  = vH / H;
+
+  for (let i = 0; i < numCols; i++) {
+    const dispX = i * CFG.terrainStep + CFG.terrainStep / 2;
+    const vidX  = Math.min(Math.round(dispX * scX), vW - 1);
+
+    /* scan column top→bottom for first dark (body) pixel */
+    let topVidY = -1;
+    for (let vy = 0; vy < vH; vy++) {
+      const base = (vy * vW + vidX) * 4;
+      /* perceptual luma  (ITU-R BT.601) */
+      const luma = (img[base] * 299 + img[base + 1] * 587 + img[base + 2] * 114) / 1000;
+      if (luma < thr) {
+        topVidY = vy;
+        break;
+      }
+    }
+
+    if (topVidY >= 0) {
+      const dispY = (topVidY / vH) * H;
+      /* place terrain so its TOP surface aligns with detected edge */
+      const ny = dispY + CFG.terrainH / 2;
+      Body.setPosition(terrainBodies[i], { x: dispX, y: ny });
+      /* sync positionPrev to suppress phantom velocity on static body */
+      terrainBodies[i].positionPrev.x = dispX;
+      terrainBodies[i].positionPrev.y = ny;
+    } else {
+      /* no body in this column — park off-screen */
+      Body.setPosition(terrainBodies[i], { x: dispX, y: H + 9999 });
+      terrainBodies[i].positionPrev.x = dispX;
+      terrainBodies[i].positionPrev.y = H + 9999;
+    }
+  }
+}
+
+/* ═══════════════════════════════════════════════════════
+   FONT MEASUREMENT
+   Uses the live canvas context for accurate pixel widths.
+═══════════════════════════════════════════════════════ */
+function fontStr() {
+  return `${CFG.fontSize}px ${CFG.fontFamily}`;
+}
+
+function measureWord(text) {
+  ctx.save();
+  ctx.font = fontStr();
+  const m = ctx.measureText(text);
+  ctx.restore();
+  return {
+    w: m.width + CFG.padH * 2,
+    h: CFG.fontSize + CFG.padV * 2,
+  };
+}
+
+/* ═══════════════════════════════════════════════════════
+   WORDS
+═══════════════════════════════════════════════════════ */
+let words = [];  /* [{ body, text, w, h, color }] */
+
+function spawnWord(text) {
+  /* prune oldest body when over limit */
+  if (words.length >= CFG.maxWords) {
+    const oldest = words.shift();
+    Composite.remove(world, oldest.body);
+  }
+
+  const { w, h } = measureWord(text);
+  /* random x constrained so word starts fully on-screen */
+  const x = w / 2 + Math.random() * Math.max(0, W - w);
+  const y = -(h + 20);
+
+  const body = Bodies.rectangle(x, y, w, h, {
+    restitution: CFG.restitution,
+    friction:    CFG.friction,
+    frictionAir: CFG.frictionAir,
+    label:       'word',
+  });
+
+  /* slight random initial spin */
+  Body.setAngularVelocity(body, (Math.random() - 0.5) * 0.12);
+
+  Composite.add(world, body);
+  words.push({ body, text, w, h, color: PALETTE[palIdx++ % PALETTE.length] });
+}
+
+/* ═══════════════════════════════════════════════════════
+   ROUNDED RECT HELPER
+   Manual implementation for Safari iOS 15 compat.
+═══════════════════════════════════════════════════════ */
+function drawPill(cx, x, y, w, h, r) {
+  cx.beginPath();
+  cx.moveTo(x + r, y);
+  cx.lineTo(x + w - r, y);
+  cx.quadraticCurveTo(x + w, y,     x + w, y + r);
+  cx.lineTo(x + w, y + h - r);
+  cx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+  cx.lineTo(x + r, y + h);
+  cx.quadraticCurveTo(x,     y + h, x,     y + h - r);
+  cx.lineTo(x, y + r);
+  cx.quadraticCurveTo(x,     y,     x + r, y);
+  cx.closePath();
+}
+
+/* ═══════════════════════════════════════════════════════
+   SPEECH RECOGNITION
+═══════════════════════════════════════════════════════ */
+let recognition  = null;
+let speechActive = false;
+
+function cleanWord(raw) {
+  return raw.replace(/[^a-zA-Z'\u2019\-]/g, '');
+}
+
+function startSpeech() {
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SR) {
+    console.warn('SpeechRecognition not available in this browser.');
+    return;
+  }
+
+  recognition = new SR();
+  recognition.continuous      = true;
+  recognition.interimResults  = true;
+  recognition.lang            = 'en-US';
+  recognition.maxAlternatives = 1;
+
+  /* track words spawned in the current utterance to avoid
+     duplicating them when the final result arrives */
+  let interimSpawned = new Set();
+  let lastInterimTip = '';
+
+  recognition.onresult = (e) => {
+    for (let i = e.resultIndex; i < e.results.length; i++) {
+      const result     = e.results[i];
+      const transcript = result[0].transcript;
+
+      if (result.isFinal) {
+        const finalWords = transcript.trim()
+          .split(/\s+/)
+          .map(cleanWord)
+          .filter(w => w.length > CFG.minWordLen);
+
+        /* only spawn words that weren't already caught by interim */
+        finalWords.forEach(w => {
+          if (!interimSpawned.has(w.toLowerCase())) spawnWord(w);
+        });
+
+        interimSpawned.clear();
+        lastInterimTip = '';
+      } else {
+        /* from the partial transcript, take only the last word
+           (still being spoken) and spawn it if new */
+        const parts = transcript.trim().split(/\s+/);
+        const tip   = cleanWord(parts[parts.length - 1]);
+
+        if (
+          tip.length > CFG.minWordLen &&
+          tip.toLowerCase() !== lastInterimTip.toLowerCase()
+        ) {
+          spawnWord(tip);
+          interimSpawned.add(tip.toLowerCase());
+          lastInterimTip = tip;
+        }
+      }
+    }
+  };
+
+  recognition.onerror = (e) => {
+    if (e.error === 'not-allowed') {
+      alert('Microphone access denied.\nPlease enable it in Settings → Safari → Microphone.');
+    } else if (e.error !== 'no-speech' && e.error !== 'aborted') {
+      console.warn('Speech error:', e.error);
+    }
+  };
+
+  recognition.onend = () => {
+    /* auto-restart — iOS kills recognition after ~60s of silence */
+    if (speechActive) setTimeout(() => { if (speechActive) recognition.start(); }, 300);
+  };
+
+  speechActive = true;
+  recognition.start();
+}
+
+/* ═══════════════════════════════════════════════════════
+   DEVICE ORIENTATION — tilt gravity
+═══════════════════════════════════════════════════════ */
+function setupTilt() {
+  function onOrientation(e) {
+    if (e.gamma == null) return;
+    /* gamma: left/right tilt -90…+90 → shift horizontal gravity */
+    engine.gravity.x = Math.max(-2, Math.min(2, e.gamma / 40));
+  }
+
+  if (
+    typeof DeviceOrientationEvent !== 'undefined' &&
+    typeof DeviceOrientationEvent.requestPermission === 'function'
+  ) {
+    /* iOS 13+ requires explicit permission */
+    DeviceOrientationEvent.requestPermission()
+      .then(state => {
+        if (state === 'granted') window.addEventListener('deviceorientation', onOrientation);
+      })
+      .catch(() => {});
+  } else {
+    window.addEventListener('deviceorientation', onOrientation);
+  }
+}
+
+/* ═══════════════════════════════════════════════════════
+   RENDER LOOP
+═══════════════════════════════════════════════════════ */
+let frame = 0;
+
+(function loop() {
+  requestAnimationFrame(loop);
+
+  Engine.update(engine, 1000 / 60);
+
+  if (++frame % CFG.terrainInterval === 0) updateTerrain();
+
+  /* ── background ── */
+  ctx.fillStyle = '#0a0a0a';
+  ctx.fillRect(0, 0, W, H);
+
+  /* ── camera feed (mirrored, dimmed) ── */
+  if (video && video.readyState >= 2) {
+    ctx.save();
+    ctx.globalAlpha = CFG.cameraAlpha;
+    ctx.translate(W, 0);
+    ctx.scale(-1, 1);
+    ctx.drawImage(video, 0, 0, W, H);
+    ctx.restore();
+  }
+
+  /* ── word pills ── */
+  ctx.font         = fontStr();
+  ctx.textAlign    = 'center';
+  ctx.textBaseline = 'middle';
+
+  words = words.filter(({ body, text, w, h, color }) => {
+    /* remove words that have exited the bottom */
+    if (body.position.y - h / 2 > H + 60) {
+      Composite.remove(world, body);
+      return false;
+    }
+
+    const { x, y } = body.position;
+    const ang = body.angle;
+    const r   = h / 2;
+
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.rotate(ang);
+
+    /* pill background */
+    ctx.fillStyle = 'rgba(8, 8, 8, 0.72)';
+    drawPill(ctx, -w / 2, -h / 2, w, h, r);
+    ctx.fill();
+
+    /* word text */
+    ctx.fillStyle = color;
+    ctx.fillText(text, 0, 0);
+
+    ctx.restore();
+    return true;
+  });
+})();
+
+/* ═══════════════════════════════════════════════════════
+   RESIZE
+═══════════════════════════════════════════════════════ */
+window.addEventListener('resize', () => {
+  resize();
+  buildBoundaries();
+  initTerrain();
+});
+
+/* ═══════════════════════════════════════════════════════
+   START FLOW
+═══════════════════════════════════════════════════════ */
+const overlay     = document.getElementById('overlay');
+const startBtn    = document.getElementById('startBtn');
+const controls    = document.getElementById('controls');
+const threshRange = document.getElementById('threshRange');
+const clearBtn    = document.getElementById('clearBtn');
+
+startBtn.addEventListener('click', async () => {
+  overlay.style.display = 'none';
+
+  try {
+    await startCamera();
+  } catch (err) {
+    console.warn('Camera unavailable — running without body terrain:', err);
+    /* experience degrades gracefully: words fall to the floor */
+  }
+
+  startSpeech();
+  setupTilt();
+
+  controls.style.display = 'flex';
+  clearBtn.style.display = 'block';
+});
+
+threshRange.addEventListener('input', () => {
+  CFG.threshold = +threshRange.value;
+});
+
+clearBtn.addEventListener('click', () => {
+  words.forEach(({ body }) => Composite.remove(world, body));
+  words = [];
+});
+</script>
+</body>
+</html>
