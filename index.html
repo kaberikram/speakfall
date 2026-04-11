@@ -10,15 +10,10 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,500;1,400&display=swap" rel="stylesheet">
   <style>
-    *, *::before, *::after {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
     html, body {
-      width: 100%;
-      height: 100%;
+      width: 100%; height: 100%;
       overflow: hidden;
       background: #000;
       -webkit-touch-callout: none;
@@ -31,99 +26,70 @@
       display: block;
       position: fixed;
       inset: 0;
-      width: 100%;
-      height: 100%;
+      width: 100%; height: 100%;
     }
 
-    /* ── Start overlay ────────────────────────────── */
+    /* ── Start overlay ───────────────────────────── */
     #overlay {
-      position: fixed;
-      inset: 0;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      background: rgba(0, 0, 0, 0.90);
+      position: fixed; inset: 0;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      background: rgba(0,0,0,0.90);
       z-index: 20;
       font-family: 'EB Garamond', Georgia, serif;
-      color: #fff;
-      text-align: center;
+      color: #fff; text-align: center;
       padding: 2.5rem;
     }
-
     #overlay h1 {
       font-size: clamp(2.4rem, 9vw, 3.2rem);
-      font-weight: 400;
-      letter-spacing: 0.04em;
-      margin-bottom: 0.8rem;
+      font-weight: 400; letter-spacing: 0.04em; margin-bottom: 0.8rem;
     }
-
     #overlay p {
       font-size: clamp(1rem, 3.8vw, 1.2rem);
-      opacity: 0.60;
-      max-width: 300px;
-      line-height: 1.65;
+      opacity: 0.60; max-width: 300px; line-height: 1.65;
     }
-
     #startBtn {
-      margin-top: 2.5rem;
-      padding: 0.9rem 3rem;
-      background: #fff;
-      color: #000;
-      border: none;
-      border-radius: 100px;
+      margin-top: 2.5rem; padding: 0.9rem 3rem;
+      background: #fff; color: #000;
+      border: none; border-radius: 100px;
       font-family: 'EB Garamond', Georgia, serif;
-      font-size: 1.2rem;
-      letter-spacing: 0.04em;
-      cursor: pointer;
-      -webkit-tap-highlight-color: transparent;
+      font-size: 1.2rem; letter-spacing: 0.04em;
+      cursor: pointer; -webkit-tap-highlight-color: transparent;
     }
 
-    /* ── In-session controls ──────────────────────── */
+    /* ── Threshold slider ────────────────────────── */
     #controls {
       position: fixed;
       bottom: max(env(safe-area-inset-bottom, 0px), 1rem);
-      left: 0;
-      right: 0;
+      left: 0; right: 0;
       padding: 0 1.5rem 1.25rem;
-      display: none;
-      flex-direction: column;
-      align-items: center;
-      gap: 0.45rem;
+      display: none; flex-direction: column;
+      align-items: center; gap: 0.45rem;
       z-index: 10;
     }
-
     #controls label {
-      color: rgba(255, 255, 255, 0.35);
+      color: rgba(255,255,255,0.35);
       font-size: 0.68rem;
       font-family: ui-monospace, 'SF Mono', monospace;
-      letter-spacing: 0.1em;
-      text-transform: uppercase;
+      letter-spacing: 0.1em; text-transform: uppercase;
     }
-
     #threshRange {
       width: 160px;
-      accent-color: rgba(255, 255, 255, 0.55);
-      opacity: 0.55;
-      cursor: pointer;
+      accent-color: rgba(255,255,255,0.55);
+      opacity: 0.55; cursor: pointer;
     }
 
-    /* mic active indicator */
+    /* ── Mic indicator ───────────────────────────── */
     #micDot {
       position: fixed;
       top: max(env(safe-area-inset-top, 0px), 1rem);
       left: 1rem;
-      display: none;
-      align-items: center;
-      gap: 0.45rem;
+      display: none; align-items: center; gap: 0.45rem;
       z-index: 10;
     }
     #micDot span {
-      width: 7px;
-      height: 7px;
-      border-radius: 50%;
-      background: #ff4b4b;
-      box-shadow: 0 0 7px #ff4b4b;
+      width: 7px; height: 7px; border-radius: 50%;
+      background: #ff4b4b; box-shadow: 0 0 7px #ff4b4b;
       animation: pulse 1.6s ease-in-out infinite;
     }
     #micDot label {
@@ -132,26 +98,56 @@
       font-family: ui-monospace, 'SF Mono', monospace;
       letter-spacing: 0.08em;
     }
-    @keyframes pulse {
-      0%, 100% { opacity: 1; }
-      50%       { opacity: 0.3; }
-    }
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
 
+    /* ── Clear button ────────────────────────────── */
     #clearBtn {
       position: fixed;
       top: max(env(safe-area-inset-top, 0px), 0.75rem);
       right: 1rem;
       padding: 0.4rem 1rem;
-      background: rgba(255, 255, 255, 0.08);
-      border: 1px solid rgba(255, 255, 255, 0.22);
+      background: rgba(255,255,255,0.08);
+      border: 1px solid rgba(255,255,255,0.22);
       border-radius: 100px;
-      color: rgba(255, 255, 255, 0.6);
+      color: rgba(255,255,255,0.6);
       font-size: 0.72rem;
       font-family: ui-monospace, 'SF Mono', monospace;
       letter-spacing: 0.06em;
-      cursor: pointer;
+      cursor: pointer; display: none; z-index: 10;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    /* ── Debug panel ─────────────────────────────── */
+    #debug {
+      position: fixed;
+      bottom: 0; left: 0; right: 0;
+      background: rgba(0,0,0,0.88);
+      border-top: 1px solid rgba(255,255,255,0.12);
+      color: #cfc;
+      font-family: ui-monospace, 'SF Mono', monospace;
+      font-size: 11px;
+      padding: 10px 14px 14px;
+      z-index: 30;
       display: none;
-      z-index: 10;
+      flex-direction: column;
+      gap: 5px;
+    }
+    #debug .dbg-title {
+      color: rgba(255,255,255,0.3);
+      font-size: 9px; letter-spacing: 0.12em;
+      text-transform: uppercase; margin-bottom: 2px;
+    }
+    #debug .row { display: flex; gap: 8px; align-items: baseline; }
+    #debug .lbl { color: rgba(255,255,255,0.35); min-width: 58px; }
+    #debug .val { color: #7fff7f; word-break: break-all; flex: 1; }
+    #debug .err { color: #ff8080; }
+    #debug .dbg-btns { display: flex; gap: 8px; margin-top: 4px; flex-wrap: wrap; }
+    #debug button {
+      background: rgba(255,255,255,0.12);
+      border: 1px solid rgba(255,255,255,0.25);
+      border-radius: 4px; color: #fff;
+      padding: 4px 12px; font-size: 11px;
+      font-family: inherit; cursor: pointer;
       -webkit-tap-highlight-color: transparent;
     }
   </style>
@@ -174,6 +170,22 @@
 <div id="micDot"><span></span><label>listening</label></div>
 <button id="clearBtn">clear</button>
 
+<!-- debug panel — shown after start -->
+<div id="debug">
+  <div class="dbg-title">debug</div>
+  <div class="row"><span class="lbl">video</span><span class="val" id="dbgVideo">—</span></div>
+  <div class="row"><span class="lbl">interim</span><span class="val" id="dbgInterim">—</span></div>
+  <div class="row"><span class="lbl">final</span><span class="val" id="dbgFinal">—</span></div>
+  <div class="row"><span class="lbl">status</span><span class="val" id="dbgStatus">waiting</span></div>
+  <div class="row" id="dbgErrRow" style="display:none">
+    <span class="lbl">error</span><span class="err" id="dbgErr">—</span>
+  </div>
+  <div class="dbg-btns">
+    <button id="dbgSpawn">spawn test word</button>
+    <button id="dbgHide">hide debug</button>
+  </div>
+</div>
+
 <script src="https://cdnjs.cloudflare.com/ajax/libs/matter-js/0.19.0/matter.min.js"></script>
 <script>
 'use strict';
@@ -182,36 +194,41 @@
    CONFIG
 ═══════════════════════════════════════════════════════ */
 const CFG = {
-  /* physics */
   gravity:        1.2,
   restitution:    0.22,
   friction:       0.60,
   frictionAir:    0.009,
-
-  /* rendering */
   cameraAlpha:    0.40,
   fontFamily:     '"EB Garamond", Georgia, serif',
-  fontSize:       30,     /* px */
-  padH:           16,     /* horizontal padding inside word pill */
-  padV:           8,      /* vertical padding */
-
-  /* terrain */
-  terrainStep:    8,      /* px between sampled columns */
-  terrainInterval:4,      /* update terrain every N frames */
-  terrainH:       14,     /* height of each terrain strip body */
-  threshold:      160,    /* initial brightness threshold 0–255 */
-
-  /* words */
+  fontSize:       30,
+  padH:           16,
+  padV:           8,
+  terrainStep:    8,
+  terrainInterval:4,
+  terrainH:       14,
+  threshold:      160,
   maxWords:       30,
   minWordLen:     3,
 };
 
-/* word colour palette — cycling */
-const PALETTE = [
-  '#ffffff', '#ffd6a5', '#caffbf',
-  '#9bf6ff', '#bdb2ff', '#ffc6ff', '#fdffb6',
-];
+const PALETTE = ['#ffffff','#ffd6a5','#caffbf','#9bf6ff','#bdb2ff','#ffc6ff','#fdffb6'];
 let palIdx = 0;
+
+/* ═══════════════════════════════════════════════════════
+   DEBUG HELPERS
+═══════════════════════════════════════════════════════ */
+const dbgPanel   = document.getElementById('debug');
+const dbgVideo   = document.getElementById('dbgVideo');
+const dbgInterim = document.getElementById('dbgInterim');
+const dbgFinal   = document.getElementById('dbgFinal');
+const dbgStatus  = document.getElementById('dbgStatus');
+const dbgErrRow  = document.getElementById('dbgErrRow');
+const dbgErr     = document.getElementById('dbgErr');
+
+function dbg(field, val, isErr) {
+  field.textContent = String(val).slice(0, 120);
+  if (isErr) { dbgErrRow.style.display = 'flex'; dbgErr.textContent = val; }
+}
 
 /* ═══════════════════════════════════════════════════════
    CANVAS
@@ -236,19 +253,18 @@ engine.gravity.x = 0;
 engine.gravity.y = CFG.gravity;
 const world = engine.world;
 
-/* boundaries */
 let floor, wallL, wallR;
 function buildBoundaries() {
   if (floor) Composite.remove(world, [floor, wallL, wallR]);
-  floor = Bodies.rectangle(W / 2, H + 50, W * 3, 80, { isStatic: true, label: 'floor' });
-  wallL = Bodies.rectangle(-35,  H / 2, 70, H * 4, { isStatic: true, label: 'wall' });
-  wallR = Bodies.rectangle(W + 35, H / 2, 70, H * 4, { isStatic: true, label: 'wall' });
+  floor = Bodies.rectangle(W/2, H+50,  W*3, 80, { isStatic:true, label:'floor' });
+  wallL = Bodies.rectangle(-35, H/2,   70,  H*4,{ isStatic:true, label:'wall'  });
+  wallR = Bodies.rectangle(W+35,H/2,   70,  H*4,{ isStatic:true, label:'wall'  });
   Composite.add(world, [floor, wallL, wallR]);
 }
 buildBoundaries();
 
 /* ═══════════════════════════════════════════════════════
-   TERRAIN — pre-allocated strip bodies
+   TERRAIN
 ═══════════════════════════════════════════════════════ */
 let terrainBodies = [];
 let numCols = 0;
@@ -257,20 +273,11 @@ function initTerrain() {
   terrainBodies.forEach(b => Composite.remove(world, b));
   terrainBodies = [];
   numCols = Math.ceil(W / CFG.terrainStep) + 1;
-
   for (let i = 0; i < numCols; i++) {
     const b = Bodies.rectangle(
-      i * CFG.terrainStep + CFG.terrainStep / 2,
-      H + 9999,                  /* parked off-screen */
-      CFG.terrainStep + 2,       /* slight overlap prevents gaps */
-      CFG.terrainH,
-      {
-        isStatic: true,
-        label: 'terrain',
-        restitution: 0.06,
-        friction: 0.90,
-        frictionStatic: 1.0,
-      }
+      i * CFG.terrainStep + CFG.terrainStep / 2, H + 9999,
+      CFG.terrainStep + 2, CFG.terrainH,
+      { isStatic:true, label:'terrain', restitution:0.06, friction:0.9, frictionStatic:1.0 }
     );
     terrainBodies.push(b);
     Composite.add(world, b);
@@ -279,20 +286,19 @@ function initTerrain() {
 initTerrain();
 
 /* ═══════════════════════════════════════════════════════
-   CAMERA
+   CAMERA  — contain-fit (no crop, no distortion)
 ═══════════════════════════════════════════════════════ */
 let video   = null;
-let aCanvas = null;   /* off-screen analysis canvas */
+let aCanvas = null;
 let aCtx    = null;
-
-/* cover-fit: scale video to fill canvas, crop edges if needed */
-let videoFit = { scale: 1, dx: 0, dy: 0, drawW: 0, drawH: 0 };
+let videoFit = { scale:1, dx:0, dy:0, drawW:0, drawH:0 };
 
 function computeVideoFit() {
   if (!video || !video.videoWidth) return;
   const vw = video.videoWidth;
   const vh = video.videoHeight;
-  const scale = Math.max(W / vw, H / vh);
+  /* contain (Math.min): show full camera, letterbox if aspect differs */
+  const scale = Math.min(W / vw, H / vh);
   videoFit = {
     scale,
     drawW: vw * scale,
@@ -300,6 +306,7 @@ function computeVideoFit() {
     dx: (W - vw * scale) / 2,
     dy: (H - vh * scale) / 2,
   };
+  dbg(dbgVideo, `${vw}×${vh} → scale ${scale.toFixed(3)} fit ${Math.round(vw*scale)}×${Math.round(vh*scale)}`);
 }
 
 async function startCamera() {
@@ -311,8 +318,8 @@ async function startCamera() {
   const stream = await navigator.mediaDevices.getUserMedia({
     video: {
       facingMode: 'user',
-      width:  { ideal: 390 },
-      height: { ideal: 844 },
+      width:  { ideal: window.innerWidth },
+      height: { ideal: window.innerHeight },
     },
     audio: false,
   });
@@ -320,7 +327,7 @@ async function startCamera() {
   video.srcObject = stream;
   await video.play();
 
-  aCanvas        = document.createElement('canvas');
+  aCanvas = document.createElement('canvas');
   aCanvas.width  = video.videoWidth  || 390;
   aCanvas.height = video.videoHeight || 844;
   aCtx = aCanvas.getContext('2d', { willReadFrequently: true });
@@ -330,8 +337,6 @@ async function startCamera() {
 
 /* ═══════════════════════════════════════════════════════
    TERRAIN UPDATE
-   Scan each column top-to-bottom; first dark pixel
-   (brightness < threshold) is the top of the body.
 ═══════════════════════════════════════════════════════ */
 function updateTerrain() {
   if (!video || !aCtx || video.readyState < 2) return;
@@ -339,55 +344,41 @@ function updateTerrain() {
   const vW = aCanvas.width;
   const vH = aCanvas.height;
 
-  /* Draw video un-mirrored into analysis canvas (raw video coords).
-     The display is mirrored, so we map dispX → vidX accounting for
-     the mirror when sampling below. */
+  /* un-mirrored draw → raw video coordinates */
   aCtx.drawImage(video, 0, 0, vW, vH);
-
   const img = aCtx.getImageData(0, 0, vW, vH).data;
   const thr = CFG.threshold;
-  const { scale, dx, dy, drawW, drawH } = videoFit;
+  const { scale, dx, dy } = videoFit;
 
   for (let i = 0; i < numCols; i++) {
     const dispX = i * CFG.terrainStep + CFG.terrainStep / 2;
 
-    /* Map display x → video x, accounting for mirror + cover-fit.
-       The display is drawn mirrored: screen_x = W - dx - (vx/vW)*drawW
-       Solving for vx: vx = (W - dx - dispX) / scale               */
-    const vx = (W - dx - dispX) / scale;
+    /* mirror + contain-fit: screen_x = W - dx - (vx/vW)*drawW
+       → vx = (W - dx - dispX) / scale                          */
+    const vx   = (W - dx - dispX) / scale;
     const vidX = Math.round(vx);
 
     if (vidX < 0 || vidX >= vW) {
-      /* column outside the video frame — park off-screen */
       Body.setPosition(terrainBodies[i], { x: dispX, y: H + 9999 });
       terrainBodies[i].positionPrev.x = dispX;
       terrainBodies[i].positionPrev.y = H + 9999;
       continue;
     }
 
-    /* scan column top→bottom for first dark (body) pixel */
     let topVidY = -1;
     for (let vy = 0; vy < vH; vy++) {
       const base = (vy * vW + vidX) * 4;
-      /* perceptual luma  (ITU-R BT.601) */
-      const luma = (img[base] * 299 + img[base + 1] * 587 + img[base + 2] * 114) / 1000;
-      if (luma < thr) {
-        topVidY = vy;
-        break;
-      }
+      const luma = (img[base]*299 + img[base+1]*587 + img[base+2]*114) / 1000;
+      if (luma < thr) { topVidY = vy; break; }
     }
 
     if (topVidY >= 0) {
-      /* Map video y → display y using cover-fit offset */
       const dispY = topVidY * scale + dy;
-      /* place terrain so its TOP surface aligns with detected edge */
-      const ny = dispY + CFG.terrainH / 2;
+      const ny    = dispY + CFG.terrainH / 2;
       Body.setPosition(terrainBodies[i], { x: dispX, y: ny });
-      /* sync positionPrev to suppress phantom velocity on static body */
       terrainBodies[i].positionPrev.x = dispX;
       terrainBodies[i].positionPrev.y = ny;
     } else {
-      /* no body in this column — park off-screen */
       Body.setPosition(terrainBodies[i], { x: dispX, y: H + 9999 });
       terrainBodies[i].positionPrev.x = dispX;
       terrainBodies[i].positionPrev.y = H + 9999;
@@ -396,70 +387,51 @@ function updateTerrain() {
 }
 
 /* ═══════════════════════════════════════════════════════
-   FONT MEASUREMENT
-   Uses the live canvas context for accurate pixel widths.
+   WORDS
 ═══════════════════════════════════════════════════════ */
-function fontStr() {
-  return `${CFG.fontSize}px ${CFG.fontFamily}`;
-}
+let words = [];
+
+function fontStr() { return `${CFG.fontSize}px ${CFG.fontFamily}`; }
 
 function measureWord(text) {
   ctx.save();
   ctx.font = fontStr();
   const m = ctx.measureText(text);
   ctx.restore();
-  return {
-    w: m.width + CFG.padH * 2,
-    h: CFG.fontSize + CFG.padV * 2,
-  };
+  return { w: m.width + CFG.padH * 2, h: CFG.fontSize + CFG.padV * 2 };
 }
 
-/* ═══════════════════════════════════════════════════════
-   WORDS
-═══════════════════════════════════════════════════════ */
-let words = [];  /* [{ body, text, w, h, color }] */
-
 function spawnWord(text) {
-  /* prune oldest body when over limit */
   if (words.length >= CFG.maxWords) {
-    const oldest = words.shift();
-    Composite.remove(world, oldest.body);
+    const old = words.shift();
+    Composite.remove(world, old.body);
   }
-
   const { w, h } = measureWord(text);
-  /* random x constrained so word starts fully on-screen */
-  const x = w / 2 + Math.random() * Math.max(0, W - w);
+  const x = w/2 + Math.random() * Math.max(0, W - w);
   const y = -(h + 20);
 
   const body = Bodies.rectangle(x, y, w, h, {
     restitution: CFG.restitution,
     friction:    CFG.friction,
     frictionAir: CFG.frictionAir,
-    label:       'word',
+    label: 'word',
   });
-
-  /* slight random initial spin */
   Body.setAngularVelocity(body, (Math.random() - 0.5) * 0.12);
-
   Composite.add(world, body);
   words.push({ body, text, w, h, color: PALETTE[palIdx++ % PALETTE.length] });
 }
 
-/* ═══════════════════════════════════════════════════════
-   ROUNDED RECT HELPER
-   Manual implementation for Safari iOS 15 compat.
-═══════════════════════════════════════════════════════ */
 function drawPill(cx, x, y, w, h, r) {
   cx.beginPath();
-  cx.moveTo(x + r, y);
-  cx.lineTo(x + w - r, y);
-  cx.quadraticCurveTo(x + w, y,     x + w, y + r);
-  cx.lineTo(x + w, y + h - r);
-  cx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
-  cx.lineTo(x + r, y + h);
-  cx.quadraticCurveTo(x,     y + h, x,     y + h - r);
-  cx.lineTo(x, y + r);
-  cx.quadraticCurveTo(x,     y,     x + r, y);
+  cx.moveTo(x+r, y);
+  cx.lineTo(x+w-r, y);
+  cx.quadraticCurveTo(x+w, y,   x+w, y+r);
+  cx.lineTo(x+w, y+h-r);
+  cx.quadraticCurveTo(x+w, y+h, x+w-r, y+h);
+  cx.lineTo(x+r, y+h);
+  cx.quadraticCurveTo(x, y+h,   x, y+h-r);
+  cx.lineTo(x, y+r);
+  cx.quadraticCurveTo(x, y,     x+r, y);
   cx.closePath();
 }
 
@@ -477,18 +449,20 @@ function cleanWord(raw) {
 async function startSpeech() {
   const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
   if (!SR) {
-    console.warn('SpeechRecognition not available in this browser.');
+    dbg(dbgStatus, 'ERROR: SpeechRecognition not available', true);
     return;
   }
 
-  /* iOS requires an explicit getUserMedia({audio:true}) call from a
-     user-gesture context to trigger the microphone permission popup.
-     The Speech API alone won't reliably show it on Safari iOS.       */
+  /* Explicitly request mic via getUserMedia first — this is what
+     makes the iOS permission popup actually appear.               */
+  dbg(dbgStatus, 'requesting mic permission…');
   try {
-    const micStream = await navigator.mediaDevices.getUserMedia({ audio: true });
-    micStream.getTracks().forEach(t => t.stop());   /* just needed the permission */
+    const s = await navigator.mediaDevices.getUserMedia({ audio: true });
+    s.getTracks().forEach(t => t.stop());
+    dbg(dbgStatus, 'mic granted, starting recognition…');
   } catch (err) {
-    alert('Microphone access denied.\nPlease enable it in Settings → Safari → Microphone.');
+    dbg(dbgStatus, `mic denied: ${err.message}`, true);
+    alert('Microphone access denied.\nGo to Settings → Safari → Microphone.');
     return;
   }
 
@@ -498,8 +472,6 @@ async function startSpeech() {
   recognition.lang            = 'en-US';
   recognition.maxAlternatives = 1;
 
-  /* track words spawned in the current utterance to avoid
-     duplicating them when the final result arrives */
   let interimSpawned = new Set();
   let lastInterimTip = '';
 
@@ -509,28 +481,19 @@ async function startSpeech() {
       const transcript = result[0].transcript;
 
       if (result.isFinal) {
-        const finalWords = transcript.trim()
-          .split(/\s+/)
-          .map(cleanWord)
-          .filter(w => w.length > CFG.minWordLen);
-
-        /* only spawn words that weren't already caught by interim */
+        dbg(dbgFinal, transcript);
+        const finalWords = transcript.trim().split(/\s+/)
+          .map(cleanWord).filter(w => w.length > CFG.minWordLen);
         finalWords.forEach(w => {
           if (!interimSpawned.has(w.toLowerCase())) spawnWord(w);
         });
-
         interimSpawned.clear();
         lastInterimTip = '';
       } else {
-        /* from the partial transcript, take only the last word
-           (still being spoken) and spawn it if new */
+        dbg(dbgInterim, transcript);
         const parts = transcript.trim().split(/\s+/);
         const tip   = cleanWord(parts[parts.length - 1]);
-
-        if (
-          tip.length > CFG.minWordLen &&
-          tip.toLowerCase() !== lastInterimTip.toLowerCase()
-        ) {
+        if (tip.length > CFG.minWordLen && tip.toLowerCase() !== lastInterimTip.toLowerCase()) {
           spawnWord(tip);
           interimSpawned.add(tip.toLowerCase());
           lastInterimTip = tip;
@@ -540,21 +503,24 @@ async function startSpeech() {
   };
 
   recognition.onerror = (e) => {
+    dbg(dbgStatus, `speech error: ${e.error}`, e.error === 'not-allowed');
     if (e.error === 'not-allowed') {
-      alert('Microphone access denied.\nPlease enable it in Settings → Safari → Microphone.');
-    } else if (e.error !== 'no-speech' && e.error !== 'aborted') {
-      console.warn('Speech error:', e.error);
+      alert('Microphone access denied.\nGo to Settings → Safari → Microphone.');
     }
   };
 
-  recognition.onstart = () => { micDot.style.display = 'flex'; };
+  recognition.onstart = () => {
+    micDot.style.display = 'flex';
+    dbg(dbgStatus, 'recognition active ✓');
+  };
 
   recognition.onend = () => {
-    /* auto-restart — iOS kills recognition after ~60s of silence */
     if (speechActive) {
+      dbg(dbgStatus, 'restarting…');
       setTimeout(() => { if (speechActive) recognition.start(); }, 300);
     } else {
       micDot.style.display = 'none';
+      dbg(dbgStatus, 'stopped');
     }
   };
 
@@ -563,24 +529,17 @@ async function startSpeech() {
 }
 
 /* ═══════════════════════════════════════════════════════
-   DEVICE ORIENTATION — tilt gravity
+   DEVICE ORIENTATION
 ═══════════════════════════════════════════════════════ */
 function setupTilt() {
   function onOrientation(e) {
     if (e.gamma == null) return;
-    /* gamma: left/right tilt -90…+90 → shift horizontal gravity */
     engine.gravity.x = Math.max(-2, Math.min(2, e.gamma / 40));
   }
-
-  if (
-    typeof DeviceOrientationEvent !== 'undefined' &&
-    typeof DeviceOrientationEvent.requestPermission === 'function'
-  ) {
-    /* iOS 13+ requires explicit permission */
+  if (typeof DeviceOrientationEvent !== 'undefined' &&
+      typeof DeviceOrientationEvent.requestPermission === 'function') {
     DeviceOrientationEvent.requestPermission()
-      .then(state => {
-        if (state === 'granted') window.addEventListener('deviceorientation', onOrientation);
-      })
+      .then(s => { if (s === 'granted') window.addEventListener('deviceorientation', onOrientation); })
       .catch(() => {});
   } else {
     window.addEventListener('deviceorientation', onOrientation);
@@ -594,57 +553,41 @@ let frame = 0;
 
 (function loop() {
   requestAnimationFrame(loop);
-
   Engine.update(engine, 1000 / 60);
-
   if (++frame % CFG.terrainInterval === 0) updateTerrain();
 
-  /* ── background ── */
   ctx.fillStyle = '#0a0a0a';
   ctx.fillRect(0, 0, W, H);
 
-  /* ── camera feed (mirrored, cover-fit, dimmed) ── */
+  /* camera — mirrored, contain-fit */
   if (video && video.readyState >= 2) {
     const { dx, dy, drawW, drawH } = videoFit;
     ctx.save();
     ctx.globalAlpha = CFG.cameraAlpha;
-    /* mirror: translate(W,0) scale(-1,1) — then draw at (dx,dy,drawW,drawH)
-       which maps correctly to cover-fit on screen (math verified in comments) */
     ctx.translate(W, 0);
     ctx.scale(-1, 1);
     ctx.drawImage(video, dx, dy, drawW, drawH);
     ctx.restore();
   }
 
-  /* ── word pills ── */
-  ctx.font         = fontStr();
+  ctx.font = fontStr();
   ctx.textAlign    = 'center';
   ctx.textBaseline = 'middle';
 
   words = words.filter(({ body, text, w, h, color }) => {
-    /* remove words that have exited the bottom */
-    if (body.position.y - h / 2 > H + 60) {
+    if (body.position.y - h/2 > H + 60) {
       Composite.remove(world, body);
       return false;
     }
-
     const { x, y } = body.position;
-    const ang = body.angle;
-    const r   = h / 2;
-
     ctx.save();
     ctx.translate(x, y);
-    ctx.rotate(ang);
-
-    /* pill background */
-    ctx.fillStyle = 'rgba(8, 8, 8, 0.72)';
-    drawPill(ctx, -w / 2, -h / 2, w, h, r);
+    ctx.rotate(body.angle);
+    ctx.fillStyle = 'rgba(8,8,8,0.72)';
+    drawPill(ctx, -w/2, -h/2, w, h, h/2);
     ctx.fill();
-
-    /* word text */
     ctx.fillStyle = color;
     ctx.fillText(text, 0, 0);
-
     ctx.restore();
     return true;
   });
@@ -671,28 +614,40 @@ const clearBtn    = document.getElementById('clearBtn');
 
 startBtn.addEventListener('click', async () => {
   overlay.style.display = 'none';
+  dbgPanel.style.display = 'flex';
+  controls.style.display = 'flex';
+  clearBtn.style.display = 'block';
+
+  /* Camera and mic run concurrently so neither blocks the other.
+     Speech is kicked off first so recognition.start() is called
+     as soon as possible after the tap gesture.                   */
+  const speechPromise = startSpeech();
 
   try {
     await startCamera();
   } catch (err) {
-    console.warn('Camera unavailable — running without body terrain:', err);
-    /* experience degrades gracefully: words fall to the floor */
+    dbg(dbgStatus, `camera failed: ${err.message}`, true);
   }
 
-  await startSpeech();
+  await speechPromise;
   setupTilt();
-
-  controls.style.display = 'flex';
-  clearBtn.style.display = 'block';
 });
 
-threshRange.addEventListener('input', () => {
-  CFG.threshold = +threshRange.value;
-});
+threshRange.addEventListener('input', () => { CFG.threshold = +threshRange.value; });
 
 clearBtn.addEventListener('click', () => {
   words.forEach(({ body }) => Composite.remove(world, body));
   words = [];
+});
+
+document.getElementById('dbgSpawn').addEventListener('click', () => {
+  spawnWord('hello');
+  spawnWord('world');
+  dbg(dbgStatus, 'spawned test words');
+});
+
+document.getElementById('dbgHide').addEventListener('click', () => {
+  dbgPanel.style.display = 'none';
 });
 </script>
 </body>
