@@ -116,6 +116,7 @@
   <div class="row"><span class="lbl">interim</span><span class="val" id="dbgInterim">—</span></div>
   <div class="row"><span class="lbl">final</span><span class="val" id="dbgFinal">—</span></div>
   <div class="row"><span class="lbl">status</span><span class="val" id="dbgStatus">waiting</span></div>
+  <div class="row"><span class="lbl">words</span><span class="val" id="dbgWords">0</span></div>
   <div class="row" id="dbgErrRow" style="display:none">
     <span class="lbl">error</span><span class="err" id="dbgErr">—</span>
   </div>
@@ -150,6 +151,7 @@ const dbgFinal   = document.getElementById('dbgFinal');
 const dbgStatus  = document.getElementById('dbgStatus');
 const dbgErrRow  = document.getElementById('dbgErrRow');
 const dbgErr     = document.getElementById('dbgErr');
+const dbgWords   = document.getElementById('dbgWords');
 function dbgSet(el, val, isErr) {
   el.textContent = String(val).slice(0, 140);
   if (isErr) { dbgErrRow.style.display = 'flex'; dbgErr.textContent = val; }
@@ -230,7 +232,7 @@ function computeVideoFit() {
 /* Draw video onto any ctx with the correct rotation, mirror, and cover-fit.
    alpha: if provided, sets globalAlpha before draw.                        */
 function drawVideo(targetCtx, alpha) {
-  if (!video || video.readyState < 2) return;
+  if (!video || video.readyState < 2 || !videoFit.vw || videoFit.drawW <= 0) return;
   const { needsRot, scale, vw, vh, drawW, drawH, dx, dy } = videoFit;
 
   targetCtx.save();
@@ -432,14 +434,14 @@ let frame = 0;
 (function loop() {
   requestAnimationFrame(loop);
   Engine.update(engine, 1000/60);
-  if (++frame % CFG.terrainInterval === 0) updateTerrain();
+  if (++frame % CFG.terrainInterval === 0) { try { updateTerrain(); } catch(e) {} }
 
   // Background
   ctx.fillStyle = '#0a0a0a';
   ctx.fillRect(0, 0, W, H);
 
   // Camera — drawVideo handles rotation + mirror internally
-  drawVideo(ctx, CFG.cameraAlpha);
+  try { drawVideo(ctx, CFG.cameraAlpha); } catch(e) {}
 
   // EXPLICITLY reset transform to identity before drawing words.
   // This guards against any transform leakage from the camera draw.
@@ -465,6 +467,7 @@ let frame = 0;
     ctx.restore();
     return true;
   });
+  if (dbgWords) dbgWords.textContent = words.length;
 })();
 
 /* ─── RESIZE ────────────────────────────────────────── */
