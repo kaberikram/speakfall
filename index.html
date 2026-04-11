@@ -108,6 +108,35 @@
       cursor: pointer;
     }
 
+    /* mic active indicator */
+    #micDot {
+      position: fixed;
+      top: max(env(safe-area-inset-top, 0px), 1rem);
+      left: 1rem;
+      display: none;
+      align-items: center;
+      gap: 0.45rem;
+      z-index: 10;
+    }
+    #micDot span {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: #ff4b4b;
+      box-shadow: 0 0 7px #ff4b4b;
+      animation: pulse 1.6s ease-in-out infinite;
+    }
+    #micDot label {
+      color: rgba(255,255,255,0.4);
+      font-size: 0.68rem;
+      font-family: ui-monospace, 'SF Mono', monospace;
+      letter-spacing: 0.08em;
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50%       { opacity: 0.3; }
+    }
+
     #clearBtn {
       position: fixed;
       top: max(env(safe-area-inset-top, 0px), 0.75rem);
@@ -142,6 +171,7 @@
   <input type="range" id="threshRange" min="40" max="240" value="160">
 </div>
 
+<div id="micDot"><span></span><label>listening</label></div>
 <button id="clearBtn">clear</button>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/matter-js/0.19.0/matter.min.js"></script>
@@ -255,6 +285,23 @@ let video   = null;
 let aCanvas = null;   /* off-screen analysis canvas */
 let aCtx    = null;
 
+/* cover-fit: scale video to fill canvas, crop edges if needed */
+let videoFit = { scale: 1, dx: 0, dy: 0, drawW: 0, drawH: 0 };
+
+function computeVideoFit() {
+  if (!video || !video.videoWidth) return;
+  const vw = video.videoWidth;
+  const vh = video.videoHeight;
+  const scale = Math.max(W / vw, H / vh);
+  videoFit = {
+    scale,
+    drawW: vw * scale,
+    drawH: vh * scale,
+    dx: (W - vw * scale) / 2,
+    dy: (H - vh * scale) / 2,
+  };
+}
+
 async function startCamera() {
   video = document.createElement('video');
   video.playsInline = true;
@@ -277,6 +324,8 @@ async function startCamera() {
   aCanvas.width  = video.videoWidth  || 390;
   aCanvas.height = video.videoHeight || 844;
   aCtx = aCanvas.getContext('2d', { willReadFrequently: true });
+
+  computeVideoFit();
 }
 
 /* ═══════════════════════════════════════════════════════
@@ -290,22 +339,31 @@ function updateTerrain() {
   const vW = aCanvas.width;
   const vH = aCanvas.height;
 
-  /* draw mirrored frame into analysis canvas so x-coords
-     match the mirrored display */
-  aCtx.save();
-  aCtx.translate(vW, 0);
-  aCtx.scale(-1, 1);
+  /* Draw video un-mirrored into analysis canvas (raw video coords).
+     The display is mirrored, so we map dispX → vidX accounting for
+     the mirror when sampling below. */
   aCtx.drawImage(video, 0, 0, vW, vH);
-  aCtx.restore();
 
-  const img  = aCtx.getImageData(0, 0, vW, vH).data;
-  const thr  = CFG.threshold;
-  const scX  = vW / W;
-  const scY  = vH / H;
+  const img = aCtx.getImageData(0, 0, vW, vH).data;
+  const thr = CFG.threshold;
+  const { scale, dx, dy, drawW, drawH } = videoFit;
 
   for (let i = 0; i < numCols; i++) {
     const dispX = i * CFG.terrainStep + CFG.terrainStep / 2;
-    const vidX  = Math.min(Math.round(dispX * scX), vW - 1);
+
+    /* Map display x → video x, accounting for mirror + cover-fit.
+       The display is drawn mirrored: screen_x = W - dx - (vx/vW)*drawW
+       Solving for vx: vx = (W - dx - dispX) / scale               */
+    const vx = (W - dx - dispX) / scale;
+    const vidX = Math.round(vx);
+
+    if (vidX < 0 || vidX >= vW) {
+      /* column outside the video frame — park off-screen */
+      Body.setPosition(terrainBodies[i], { x: dispX, y: H + 9999 });
+      terrainBodies[i].positionPrev.x = dispX;
+      terrainBodies[i].positionPrev.y = H + 9999;
+      continue;
+    }
 
     /* scan column top→bottom for first dark (body) pixel */
     let topVidY = -1;
@@ -320,7 +378,8 @@ function updateTerrain() {
     }
 
     if (topVidY >= 0) {
-      const dispY = (topVidY / vH) * H;
+      /* Map video y → display y using cover-fit offset */
+      const dispY = topVidY * scale + dy;
       /* place terrain so its TOP surface aligns with detected edge */
       const ny = dispY + CFG.terrainH / 2;
       Body.setPosition(terrainBodies[i], { x: dispX, y: ny });
@@ -409,15 +468,27 @@ function drawPill(cx, x, y, w, h, r) {
 ═══════════════════════════════════════════════════════ */
 let recognition  = null;
 let speechActive = false;
+const micDot = document.getElementById('micDot');
 
 function cleanWord(raw) {
   return raw.replace(/[^a-zA-Z'\u2019\-]/g, '');
 }
 
-function startSpeech() {
+async function startSpeech() {
   const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
   if (!SR) {
     console.warn('SpeechRecognition not available in this browser.');
+    return;
+  }
+
+  /* iOS requires an explicit getUserMedia({audio:true}) call from a
+     user-gesture context to trigger the microphone permission popup.
+     The Speech API alone won't reliably show it on Safari iOS.       */
+  try {
+    const micStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    micStream.getTracks().forEach(t => t.stop());   /* just needed the permission */
+  } catch (err) {
+    alert('Microphone access denied.\nPlease enable it in Settings → Safari → Microphone.');
     return;
   }
 
@@ -476,9 +547,15 @@ function startSpeech() {
     }
   };
 
+  recognition.onstart = () => { micDot.style.display = 'flex'; };
+
   recognition.onend = () => {
     /* auto-restart — iOS kills recognition after ~60s of silence */
-    if (speechActive) setTimeout(() => { if (speechActive) recognition.start(); }, 300);
+    if (speechActive) {
+      setTimeout(() => { if (speechActive) recognition.start(); }, 300);
+    } else {
+      micDot.style.display = 'none';
+    }
   };
 
   speechActive = true;
@@ -526,13 +603,16 @@ let frame = 0;
   ctx.fillStyle = '#0a0a0a';
   ctx.fillRect(0, 0, W, H);
 
-  /* ── camera feed (mirrored, dimmed) ── */
+  /* ── camera feed (mirrored, cover-fit, dimmed) ── */
   if (video && video.readyState >= 2) {
+    const { dx, dy, drawW, drawH } = videoFit;
     ctx.save();
     ctx.globalAlpha = CFG.cameraAlpha;
+    /* mirror: translate(W,0) scale(-1,1) — then draw at (dx,dy,drawW,drawH)
+       which maps correctly to cover-fit on screen (math verified in comments) */
     ctx.translate(W, 0);
     ctx.scale(-1, 1);
-    ctx.drawImage(video, 0, 0, W, H);
+    ctx.drawImage(video, dx, dy, drawW, drawH);
     ctx.restore();
   }
 
@@ -577,6 +657,7 @@ window.addEventListener('resize', () => {
   resize();
   buildBoundaries();
   initTerrain();
+  computeVideoFit();
 });
 
 /* ═══════════════════════════════════════════════════════
@@ -598,7 +679,7 @@ startBtn.addEventListener('click', async () => {
     /* experience degrades gracefully: words fall to the floor */
   }
 
-  startSpeech();
+  await startSpeech();
   setupTilt();
 
   controls.style.display = 'flex';
