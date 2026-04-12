@@ -5,10 +5,11 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <title>Body Canvas</title>
+  <title>Speakfall</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,500;1,400&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;1,9..40,400&family=EB+Garamond:ital,wght@0,400;0,500;1,400&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
+  <noscript><link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500&family=EB+Garamond:ital,wght@0,400;0,500;1,400&display=swap" rel="stylesheet"></noscript>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     html, body {
@@ -18,77 +19,292 @@
     }
     #canvas { display: block; position: fixed; inset: 0; width: 100%; height: 100%; }
 
-    /* overlay */
+    /* overlay — warm radial like Claude marketing */
     #overlay {
       position: fixed; inset: 0; display: flex; flex-direction: column;
       align-items: center; justify-content: center;
-      background: rgba(0,0,0,0.90); z-index: 20;
+      z-index: 20;
       font-family: 'EB Garamond', Georgia, serif;
-      color: #fff; text-align: center; padding: 2.5rem;
+      text-align: center; padding: 2.5rem;
+      background:
+        radial-gradient(ellipse 130% 90% at 50% -8%, rgba(255, 200, 160, 0.95) 0%, rgba(255, 228, 210, 0.55) 28%, transparent 58%),
+        radial-gradient(ellipse 100% 70% at 50% 100%, rgba(255, 245, 238, 0.9) 0%, transparent 55%),
+        radial-gradient(circle at 50% 42%, #fffefb 0%, #fff9f4 42%, #f7f2ec 100%);
+      opacity: 1;
+      transition: opacity 0.42s ease;
+      will-change: opacity;
     }
-    #overlay h1 { font-size: clamp(2.4rem,9vw,3.2rem); font-weight:400; letter-spacing:.04em; margin-bottom:.8rem; }
-    #overlay p  { font-size: clamp(1rem,3.8vw,1.2rem); opacity:.60; max-width:300px; line-height:1.65; }
+    #overlay.overlay--exit {
+      opacity: 0;
+      pointer-events: none;
+    }
+    .menu-logo {
+      width: min(22vw, 92px);
+      height: min(22vw, 92px);
+      margin-bottom: 0.35rem;
+    }
+    #menuSvg {
+      width: 100%;
+      height: 100%;
+      overflow: visible;
+      color: #8b7355;
+    }
+    #overlay h1 {
+      font-size: clamp(2.5rem, 9vw, 3.5rem); font-weight: 400;
+      letter-spacing: .02em; margin-bottom: .75rem;
+      color: #2c2825;
+    }
+    #overlay p  {
+      font-size: clamp(1rem, 3.8vw, 1.2rem);
+      color: #6b6560;
+      max-width: 320px; line-height: 1.65;
+    }
     #startBtn {
-      margin-top: 2.5rem; padding: .9rem 3rem;
-      background: #fff; color: #000; border: none; border-radius: 100px;
+      margin-top: 2.5rem; padding: .95rem 2.75rem;
+      background: #fff;
+      color: #2c2825;
+      border: 1px solid rgba(44, 40, 37, 0.12);
+      border-radius: 999px;
       font-family: 'EB Garamond', Georgia, serif; font-size: 1.2rem;
-      letter-spacing: .04em; cursor: pointer; -webkit-tap-highlight-color: transparent;
+      letter-spacing: .03em;
+      cursor: pointer; -webkit-tap-highlight-color: transparent;
+      box-shadow: 0 2px 16px rgba(44, 40, 37, 0.08), 0 1px 2px rgba(44, 40, 37, 0.04);
+    }
+    #startBtn:active {
+      background: #faf8f5;
     }
 
-    /* controls */
-    #controls {
-      position: fixed; bottom: max(env(safe-area-inset-bottom,0px),1rem);
-      left: 0; right: 0; padding: 0 1.5rem 1.25rem;
-      display: none; flex-direction: column; align-items: center; gap: .45rem; z-index: 10;
+    #debug .dbg-thresh {
+      display: grid;
+      gap: 6px;
+      margin-top: 8px;
+      padding-top: 8px;
+      border-top: 1px solid rgba(61,61,58,.08);
     }
-    #controls label {
-      color: rgba(255,255,255,.35); font-size: .68rem;
-      font-family: ui-monospace,'SF Mono',monospace; letter-spacing: .1em; text-transform: uppercase;
+    #debug .dbg-thresh label {
+      width: 100%;
+      display: flex; align-items: baseline; justify-content: space-between; gap: 8px;
+      color: #6b6560; font-size: 11px; font-weight: 500;
+      letter-spacing: .01em; font-family: 'DM Sans', system-ui, sans-serif;
     }
-    #threshRange { width:160px; accent-color:rgba(255,255,255,.55); opacity:.55; cursor:pointer; }
+    /* One control: gradient track + thumb = brightness cutoff */
+    #threshRange {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 100%;
+      height: 28px;
+      margin: 0;
+      background: transparent;
+      cursor: pointer;
+    }
+    #threshRange:focus {
+      outline: none;
+    }
+    #threshRange:focus-visible::-webkit-slider-thumb {
+      box-shadow: 0 0 0 3px rgba(196, 165, 116, 0.45);
+    }
+    #threshRange:focus-visible::-moz-range-thumb {
+      box-shadow: 0 0 0 3px rgba(196, 165, 116, 0.45);
+    }
+    #threshRange::-webkit-slider-runnable-track {
+      height: 12px;
+      border-radius: 999px;
+      background: linear-gradient(90deg, #2a2826 0%, #8a8580 50%, #f0eeeb 100%);
+      border: 1px solid rgba(61, 61, 58, 0.12);
+      box-shadow: inset 0 1px 2px rgba(61, 61, 58, 0.06);
+    }
+    #threshRange::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 18px;
+      height: 18px;
+      margin-top: -4px;
+      border-radius: 50%;
+      background: #c4a574;
+      border: 2px solid #fff;
+      box-shadow: 0 1px 4px rgba(61, 61, 58, 0.22);
+    }
+    #threshRange::-moz-range-track {
+      height: 12px;
+      border-radius: 999px;
+      background: linear-gradient(90deg, #2a2826 0%, #8a8580 50%, #f0eeeb 100%);
+      border: 1px solid rgba(61, 61, 58, 0.12);
+      box-shadow: inset 0 1px 2px rgba(61, 61, 58, 0.06);
+    }
+    #threshRange::-moz-range-thumb {
+      width: 16px;
+      height: 16px;
+      border: 2px solid #fff;
+      border-radius: 50%;
+      background: #c4a574;
+      box-shadow: 0 1px 4px rgba(61, 61, 58, 0.22);
+    }
+    #threshValue {
+      font-family: 'DM Sans', system-ui, sans-serif; font-size: 11px; font-weight: 600;
+      color: #3d3d3a;
+      font-variant-numeric: tabular-nums;
+    }
 
-    /* mic dot */
+    #dbgShow {
+      position: fixed;
+      bottom: max(env(safe-area-inset-bottom, 0px), 14px);
+      left: 50%; transform: translateX(-50%);
+      z-index: 25;
+      display: none;
+      padding: 10px 22px;
+      background: #faf9f6;
+      border: 1px solid rgba(61,61,58,.12);
+      border-radius: 999px;
+      color: #3d3d3a;
+      font-family: 'DM Sans', system-ui, sans-serif;
+      font-size: 14px; font-weight: 500; letter-spacing: .01em;
+      box-shadow: 0 4px 24px rgba(0,0,0,.12), 0 1px 2px rgba(61,61,58,.08);
+      cursor: pointer; -webkit-tap-highlight-color: transparent;
+    }
+
     #micDot {
-      position: fixed; top: max(env(safe-area-inset-top,0px),1rem); left: 1rem;
-      display: none; align-items: center; gap: .45rem; z-index: 10;
+      position: fixed; top: max(env(safe-area-inset-top,0px), 14px); left: 1rem;
+      display: none; align-items: center; gap: .5rem; z-index: 10;
+      padding: 6px 12px 6px 8px;
+      background: rgba(250,249,246,.92);
+      border: 1px solid rgba(61,61,58,.1);
+      border-radius: 999px;
+      backdrop-filter: blur(8px);
+      box-shadow: 0 2px 16px rgba(0,0,0,.08);
     }
     #micDot span {
-      width:7px; height:7px; border-radius:50%;
-      background:#ff4b4b; box-shadow:0 0 7px #ff4b4b;
-      animation: pulse 1.6s ease-in-out infinite;
+      width: 8px; height: 8px; border-radius: 50%;
+      background: #c97c6b;
+      box-shadow: 0 0 0 3px rgba(201,124,107,.2);
+      animation: pulse 1.8s ease-in-out infinite;
     }
-    #micDot label { color:rgba(255,255,255,.4); font-size:.68rem; font-family:ui-monospace,'SF Mono',monospace; letter-spacing:.08em; }
-    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.3} }
-
-    /* clear */
-    #clearBtn {
-      position: fixed; top: max(env(safe-area-inset-top,0px),.75rem); right: 1rem;
-      padding: .4rem 1rem; background:rgba(255,255,255,.08);
-      border: 1px solid rgba(255,255,255,.22); border-radius:100px;
-      color:rgba(255,255,255,.6); font-size:.72rem;
-      font-family:ui-monospace,'SF Mono',monospace; letter-spacing:.06em;
-      cursor:pointer; display:none; z-index:10; -webkit-tap-highlight-color:transparent;
+    #micDot label {
+      color: #5c5652; font-size: 13px; font-weight: 500;
+      font-family: 'DM Sans', system-ui, sans-serif; letter-spacing: .01em;
     }
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.35} }
 
-    /* debug */
     #debug {
-      position: fixed; bottom:0; left:0; right:0;
-      background: rgba(0,0,0,.90); border-top: 1px solid rgba(255,255,255,.12);
-      color: #cfc; font-family: ui-monospace,'SF Mono',monospace; font-size:11px;
-      padding: 10px 14px 14px; z-index:30;
-      display:none; flex-direction:column; gap:5px;
+      position: fixed; bottom: 0; left: 0; right: 0;
+      background: rgba(250, 249, 246, 0.52);
+      -webkit-backdrop-filter: blur(18px) saturate(1.15);
+      backdrop-filter: blur(18px) saturate(1.15);
+      border-top: 1px solid rgba(255, 255, 255, 0.45);
+      box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.35),
+        0 -8px 32px rgba(0, 0, 0, 0.12);
+      color: #2c2825;
+      font-family: 'DM Sans', system-ui, sans-serif;
+      font-size: 11px;
+      line-height: 1.35;
+      padding: 10px 14px max(env(safe-area-inset-bottom, 0px), 12px);
+      z-index: 30;
+      display: none; flex-direction: column; gap: 6px;
+      border-radius: 14px 14px 0 0;
+      max-height: min(52vh, 420px);
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
     }
-    #debug .dtitle { color:rgba(255,255,255,.3); font-size:9px; letter-spacing:.12em; text-transform:uppercase; margin-bottom:2px; }
-    #debug .row { display:flex; gap:8px; align-items:baseline; }
-    #debug .lbl { color:rgba(255,255,255,.35); min-width:58px; }
-    #debug .val { color:#7fff7f; word-break:break-all; flex:1; }
-    #debug .err { color:#ff8080; }
-    #debug .btns { display:flex; gap:8px; margin-top:4px; flex-wrap:wrap; }
+    #debug .dtitle {
+      font-family: 'DM Sans', system-ui, sans-serif;
+      font-size: 13px; font-weight: 600;
+      color: #2c2825;
+      letter-spacing: .01em;
+      padding-bottom: 2px;
+    }
+    #debug .dbg-rows {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 4px 12px;
+    }
+    #debug .dbg-pair {
+      display: grid;
+      grid-template-columns: auto minmax(0, 1fr);
+      gap: 6px;
+      align-items: baseline;
+      min-width: 0;
+    }
+    #debug .lbl { color: #8a847c; font-size: 10px; font-weight: 500; white-space: nowrap; }
+    #debug .val {
+      color: #3d3d3a;
+      word-break: break-word;
+      font-size: 11px;
+      line-height: 1.3;
+      min-width: 0;
+    }
+    #debug .err { color: #a65d5d; font-size: 11px; }
+    #debug .dbg-span {
+      grid-column: 1 / -1;
+    }
+    #debug .dbg-err {
+      grid-column: 1 / -1;
+    }
+    #debug .btns {
+      display: flex; gap: 6px; margin-top: 4px; flex-wrap: wrap;
+    }
     #debug button {
-      background:rgba(255,255,255,.12); border:1px solid rgba(255,255,255,.25);
-      border-radius:4px; color:#fff; padding:4px 12px;
-      font-size:11px; font-family:inherit; cursor:pointer;
-      -webkit-tap-highlight-color:transparent;
+      background: #fff;
+      border: 1px solid rgba(61,61,58,.12);
+      border-radius: 999px;
+      color: #3d3d3a;
+      padding: 6px 12px;
+      font-size: 11px; font-weight: 500;
+      font-family: 'DM Sans', system-ui, sans-serif;
+      cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+      box-shadow: 0 1px 2px rgba(61,61,58,.05);
+    }
+    #debug button:active {
+      background: #f3f1ed;
+    }
+
+    /* loading — Four-Petal Spiral (hypotrochoid-style), math-curve-loaders pattern */
+    /* Under #overlay (z-index 20) so menu can fade out while same background crossfades */
+    #loadOverlay {
+      position: fixed;
+      inset: 0;
+      z-index: 19;
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 1.25rem;
+      padding: 2rem;
+      background:
+        radial-gradient(ellipse 130% 90% at 50% -8%, rgba(255, 200, 160, 0.95) 0%, rgba(255, 228, 210, 0.55) 28%, transparent 58%),
+        radial-gradient(ellipse 100% 70% at 50% 100%, rgba(255, 245, 238, 0.9) 0%, transparent 55%),
+        radial-gradient(circle at 50% 42%, #fffefb 0%, #fff9f4 42%, #f7f2ec 100%);
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.42s ease;
+      will-change: opacity;
+    }
+    #loadOverlay.loadOverlay--visible {
+      opacity: 1;
+      pointer-events: all;
+    }
+    #loadOverlay p {
+      font-family: 'DM Sans', system-ui, sans-serif;
+      font-size: 14px;
+      font-weight: 500;
+      color: #6b6560;
+      letter-spacing: 0.02em;
+      text-align: center;
+      max-width: 260px;
+      line-height: 1.45;
+    }
+    .loader-frame {
+      width: min(72vmin, 280px);
+      aspect-ratio: 1;
+      max-width: 90vw;
+      display: grid;
+      place-items: center;
+    }
+    #loaderSvg {
+      width: 100%;
+      height: 100%;
+      overflow: visible;
+      color: #8b7355;
     }
   </style>
 </head>
@@ -97,33 +313,53 @@
 <canvas id="canvas"></canvas>
 
 <div id="overlay">
-  <h1>Body Canvas</h1>
+  <div class="menu-logo" aria-hidden="true">
+    <svg id="menuSvg" viewBox="0 0 100 100" fill="none">
+      <g id="menuGroup">
+        <path id="menuPath" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" opacity="0.14"></path>
+      </g>
+    </svg>
+  </div>
+  <h1>Speakfall</h1>
   <p>Stand in front of a light wall or window.<br>Speak — your words will fall.</p>
   <button id="startBtn">Tap to Begin</button>
 </div>
 
-<div id="controls">
-  <label>brightness threshold</label>
-  <input type="range" id="threshRange" min="40" max="240" value="160">
+<div id="loadOverlay" aria-live="polite" aria-busy="true">
+  <div class="loader-frame">
+    <svg id="loaderSvg" viewBox="0 0 100 100" fill="none" role="img" aria-label="Loading animation">
+      <g id="loaderGroup">
+        <path id="loaderPath" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" opacity="0.12"></path>
+      </g>
+    </svg>
+  </div>
+  <p>Getting your camera and microphone ready…</p>
 </div>
 
-<div id="micDot"><span></span><label>listening</label></div>
-<button id="clearBtn">clear</button>
+<div id="micDot"><span></span><label>Listening</label></div>
+<button type="button" id="dbgShow" aria-label="Show details panel">Details</button>
 
 <div id="debug">
-  <div class="dtitle">debug</div>
-  <div class="row"><span class="lbl">video</span><span class="val" id="dbgVideo">—</span></div>
-  <div class="row"><span class="lbl">interim</span><span class="val" id="dbgInterim">—</span></div>
-  <div class="row"><span class="lbl">final</span><span class="val" id="dbgFinal">—</span></div>
-  <div class="row"><span class="lbl">status</span><span class="val" id="dbgStatus">waiting</span></div>
-  <div class="row"><span class="lbl">words</span><span class="val" id="dbgWords">0</span></div>
-  <div class="row" id="dbgErrRow" style="display:none">
-    <span class="lbl">error</span><span class="err" id="dbgErr">—</span>
+  <div class="dtitle">Details</div>
+  <div class="dbg-rows">
+    <div class="dbg-pair"><span class="lbl">Camera</span><span class="val" id="dbgVideo">—</span></div>
+    <div class="dbg-pair"><span class="lbl">Preview</span><span class="val" id="dbgInterim">—</span></div>
+    <div class="dbg-pair"><span class="lbl">Confirmed</span><span class="val" id="dbgFinal">—</span></div>
+    <div class="dbg-pair"><span class="lbl">Status</span><span class="val" id="dbgStatus">waiting</span></div>
+    <div class="dbg-pair dbg-span"><span class="lbl">Words</span><span class="val" id="dbgWords">0</span></div>
+    <div class="dbg-pair dbg-span dbg-err" id="dbgErrRow" style="display:none">
+      <span class="lbl">Note</span><span class="err" id="dbgErr">—</span>
+    </div>
+  </div>
+  <div class="dbg-thresh">
+    <label for="threshRange">Brightness <span id="threshValue">110</span></label>
+    <input type="range" id="threshRange" min="40" max="240" value="110"
+      title="Slide along dark → light. Pixels darker than this value become ground.">
   </div>
   <div class="btns">
-    <button id="dbgSpawn">spawn test words</button>
-    <button id="dbgFlip">flip cam rotation</button>
-    <button id="dbgHide">hide debug</button>
+    <button type="button" id="clearBtn">Clear words</button>
+    <button type="button" id="dbgSpawn">Try sample words</button>
+    <button type="button" id="dbgHide">Close</button>
   </div>
 </div>
 
@@ -138,10 +374,10 @@ const CFG = {
   fontFamily: '"EB Garamond", Georgia, serif',
   fontSize: 30, padH: 16, padV: 8,
   terrainStep: 8, terrainInterval: 4, terrainH: 14,
-  threshold: 160, maxWords: 30, minWordLen: 0,
+  threshold: 110, maxWords: 30, minWordLen: 0,
+  /** Terrain scan resolution (0.5 = half res → ~4× fewer pixels read per getImageData). */
+  analysisScale: 0.5,
 };
-const PALETTE = ['#ffffff','#ffd6a5','#caffbf','#9bf6ff','#bdb2ff','#ffc6ff','#fdffb6'];
-let palIdx = 0;
 
 /* ─── DEBUG ─────────────────────────────────────────── */
 const dbgPanel   = document.getElementById('debug');
@@ -154,7 +390,7 @@ const dbgErr     = document.getElementById('dbgErr');
 const dbgWords   = document.getElementById('dbgWords');
 function dbgSet(el, val, isErr) {
   el.textContent = String(val).slice(0, 140);
-  if (isErr) { dbgErrRow.style.display = 'flex'; dbgErr.textContent = val; }
+  if (isErr) { dbgErrRow.style.display = 'grid'; dbgErr.textContent = val; }
 }
 
 /* ─── CANVAS ────────────────────────────────────────── */
@@ -182,6 +418,8 @@ buildBoundaries();
 
 /* ─── TERRAIN BODIES ────────────────────────────────── */
 let terrainBodies = [], numCols = 0;
+/** Display Y of first sub-threshold pixel per column, or -1 (for edge overlay). */
+let terrainEdge = [];
 function initTerrain() {
   terrainBodies.forEach(b => Composite.remove(world, b));
   terrainBodies = [];
@@ -204,42 +442,66 @@ let video   = null;
 // This makes terrain scanning trivially correct — no coordinate mapping needed.
 let aCanvas = null, aCtx = null;
 
-// When the sensor gives landscape (vw>vh), we rotate 90° to fill portrait screen.
-// rotDir: +1 = CW (Math.PI/2), -1 = CCW (-Math.PI/2). Toggleable via debug.
-let rotDir = 1;
+// Landscape camera + portrait viewport (typical phone): rotate 90° to fill the screen.
+// Landscape camera + landscape viewport (typical laptop): cover-fit without rotation.
+// +1 = CW rotation when landscape camera is shown on portrait display.
+const rotDir = 1;
 
-let videoFit = { needsRot:false, scale:1, drawW:0, drawH:0, dx:0, dy:0 };
+let videoFitDisplay = { needsRot:false, scale:1, drawW:0, drawH:0, dx:0, dy:0, vw:0, vh:0, viewportW:0, viewportH:0 };
+let videoFitAnalysis = videoFitDisplay;
+
+/* Portrait phone/tablet: match older behavior (rotate whenever camera buffer is landscape).
+   Desktop / landscape viewport: only rotate when landscape stream is shown in a portrait window. */
+function isMobileCameraPipeline() {
+  const w = window.innerWidth, h = window.innerHeight;
+  if (h <= w) return false;
+  const coarse = window.matchMedia('(pointer: coarse)').matches;
+  const narrow = w <= 900;
+  return coarse || narrow;
+}
+
+function computeFitForViewport(viewportW, viewportH) {
+  const vw = video.videoWidth, vh = video.videoHeight;
+  const videoIsLandscape = vw > vh;
+  const viewportIsPortrait = viewportH > viewportW;
+  const needsRot = isMobileCameraPipeline()
+    ? videoIsLandscape
+    : (videoIsLandscape && viewportIsPortrait);
+  const pw = needsRot ? vh : vw;
+  const ph = needsRot ? vw : vh;
+  const scale = Math.max(viewportW / pw, viewportH / ph);
+  return {
+    needsRot, scale, vw, vh, viewportW, viewportH,
+    drawW: pw * scale, drawH: ph * scale,
+    dx: (viewportW - pw * scale) / 2, dy: (viewportH - ph * scale) / 2,
+  };
+}
 
 function computeVideoFit() {
   if (!video || !video.videoWidth) return;
-  const vw = video.videoWidth, vh = video.videoHeight;
-  const needsRot = vw > vh;
-
-  // Effective portrait dimensions after rotation
-  const pw = needsRot ? vh : vw;
-  const ph = needsRot ? vw : vh;
-
-  // Cover-fit: fill the screen, crop excess
-  const scale = Math.max(W / pw, H / ph);
-
-  videoFit = { needsRot, scale, vw, vh,
-    drawW: pw * scale, drawH: ph * scale,
-    dx: (W - pw * scale) / 2, dy: (H - ph * scale) / 2,
-  };
-  dbgSet(dbgVideo, `${vw}×${vh} ${needsRot?'landscape→rotated':'portrait'} scale=${scale.toFixed(3)} draw=${Math.round(pw*scale)}×${Math.round(ph*scale)}`);
+  videoFitDisplay = computeFitForViewport(W, H);
+  if (aCanvas) {
+    videoFitAnalysis = computeFitForViewport(aCanvas.width, aCanvas.height);
+  } else {
+    videoFitAnalysis = videoFitDisplay;
+  }
+  const f = videoFitDisplay;
+  const vp = f.viewportH > f.viewportW ? 'portrait' : 'landscape';
+  dbgSet(dbgVideo, `${f.vw}×${f.vh} vp=${vp} ${f.needsRot ? 'rot90' : 'cover'} scale=${f.scale.toFixed(3)} draw=${Math.round(f.drawW)}×${Math.round(f.drawH)}`);
 }
 
 /* Draw video onto any ctx with the correct rotation, mirror, and cover-fit.
    alpha: if provided, sets globalAlpha before draw.                        */
-function drawVideo(targetCtx, alpha) {
-  if (!video || video.readyState < 2 || !videoFit.vw || videoFit.drawW <= 0) return;
-  const { needsRot, scale, vw, vh, drawW, drawH, dx, dy } = videoFit;
+function drawVideo(targetCtx, alpha, fit) {
+  fit = fit || videoFitDisplay;
+  if (!video || video.readyState < 2 || !fit.vw || fit.drawW <= 0) return;
+  const { needsRot, scale, vw, vh, drawW, drawH, dx, dy, viewportW } = fit;
 
   targetCtx.save();
   if (alpha !== undefined) targetCtx.globalAlpha = alpha;
 
   if (needsRot) {
-    /* Landscape sensor → rotate 90° to fill portrait screen.
+    /* Landscape camera on portrait display: rotate 90° to cover-fit.
        Center the draw area, rotate, then mirror for selfie.
        cx, cy = center of the drawn image in display space.    */
     const cx = dx + drawW / 2;
@@ -253,8 +515,8 @@ function drawVideo(targetCtx, alpha) {
          vh*scale covers drawW (portrait width)               */
     targetCtx.drawImage(video, -vw * scale / 2, -vh * scale / 2, vw * scale, vh * scale);
   } else {
-    /* Portrait sensor — straightforward mirror + cover-fit. */
-    targetCtx.translate(W, 0);
+    /* No 90° rotation: mirror + cover (portrait camera, or landscape camera on landscape display). */
+    targetCtx.translate(viewportW, 0);
     targetCtx.scale(-1, 1);
     targetCtx.drawImage(video, dx, dy, drawW, drawH);
   }
@@ -266,17 +528,33 @@ async function startCamera() {
   video = document.createElement('video');
   video.playsInline = true; video.muted = true; video.autoplay = true;
 
+  // Desktop / landscape window: cap resolution + fps for CPU. Mobile portrait: minimal
+  // constraints (like older builds) so the device can pick a natural portrait buffer.
+  const landscapeViewport = window.innerWidth > window.innerHeight;
+  const mobilePipe = isMobileCameraPipeline();
   const stream = await navigator.mediaDevices.getUserMedia({
-    video: { facingMode: 'user' },
+    video: {
+      facingMode: 'user',
+      ...(landscapeViewport && !mobilePipe
+        ? {
+            width: { ideal: 960, max: 1280 },
+            height: { ideal: 540, max: 720 },
+            frameRate: { ideal: 30, max: 30 },
+          }
+        : mobilePipe
+          ? {}
+          : { frameRate: { ideal: 30, max: 30 } }),
+    },
     audio: false,
   });
   video.srcObject = stream;
   await video.play();
 
-  // Analysis canvas in DISPLAY space (W×H) — see drawVideo + updateTerrain
+  // Analysis canvas at reduced resolution — same visual mapping as display, cheaper getImageData.
   aCanvas = document.createElement('canvas');
-  aCanvas.width  = W;
-  aCanvas.height = H;
+  const as = CFG.analysisScale;
+  aCanvas.width  = Math.max(1, Math.floor(W * as));
+  aCanvas.height = Math.max(1, Math.floor(H * as));
   aCtx = aCanvas.getContext('2d', { willReadFrequently: true });
 
   computeVideoFit();
@@ -286,32 +564,36 @@ async function startCamera() {
 function updateTerrain() {
   if (!video || !aCtx || video.readyState < 2) return;
 
-  // Draw video into aCanvas using the SAME transform as the display.
-  // Because aCanvas is W×H, pixel (x,y) in aCanvas == display pixel (x,y).
-  // No coordinate mapping needed for terrain placement.
-  aCtx.clearRect(0, 0, W, H);
-  drawVideo(aCtx); // full brightness (no alpha arg)
+  const aW = aCanvas.width, aH = aCanvas.height;
+  const as = CFG.analysisScale;
 
-  const img = aCtx.getImageData(0, 0, W, H).data;
+  aCtx.clearRect(0, 0, aW, aH);
+  drawVideo(aCtx, undefined, videoFitAnalysis);
+
+  const img = aCtx.getImageData(0, 0, aW, aH).data;
   const thr = CFG.threshold;
+  terrainEdge.length = numCols;
 
   for (let i = 0; i < numCols; i++) {
     const dispX = i * CFG.terrainStep + CFG.terrainStep / 2;
+    const imgX = Math.min(aW - 1, Math.round(dispX * as));
 
-    // Scan this display column top-to-bottom
     let topY = -1;
-    for (let vy = 0; vy < H; vy++) {
-      const base = (vy * W + Math.round(dispX)) * 4;
+    for (let vy = 0; vy < aH; vy++) {
+      const base = (vy * aW + imgX) * 4;
       const luma = (img[base]*299 + img[base+1]*587 + img[base+2]*114) / 1000;
       if (luma < thr) { topY = vy; break; }
     }
 
     if (topY >= 0) {
-      const ny = topY + CFG.terrainH / 2;
+      const displayTopY = (topY / aH) * H;
+      terrainEdge[i] = displayTopY;
+      const ny = displayTopY + CFG.terrainH / 2;
       Body.setPosition(terrainBodies[i], { x: dispX, y: ny });
       terrainBodies[i].positionPrev.x = dispX;
       terrainBodies[i].positionPrev.y = ny;
     } else {
+      terrainEdge[i] = -1;
       Body.setPosition(terrainBodies[i], { x: dispX, y: H + 9999 });
       terrainBodies[i].positionPrev.x = dispX;
       terrainBodies[i].positionPrev.y = H + 9999;
@@ -328,7 +610,16 @@ function measureWord(text) {
   ctx.restore();
   return { w: m.width + CFG.padH * 2, h: CFG.fontSize + CFG.padV * 2 };
 }
+const recentSpawns = [];
+const DEDUP_WINDOW_MS = 1800;
+
 function spawnWord(text) {
+  const key = text.toLowerCase();
+  const now = performance.now();
+  while (recentSpawns.length && now - recentSpawns[0].t > DEDUP_WINDOW_MS) recentSpawns.shift();
+  if (recentSpawns.some(s => s.k === key)) return;
+  recentSpawns.push({ k: key, t: now });
+
   if (words.length >= CFG.maxWords) { const o = words.shift(); Composite.remove(world, o.body); }
   const { w, h } = measureWord(text);
   const x = w/2 + Math.random() * Math.max(0, W - w);
@@ -339,26 +630,105 @@ function spawnWord(text) {
   Body.setAngularVelocity(body, (Math.random() - 0.5) * 0.12);
   Body.setVelocity(body, { x: 0, y: 8 });
   Composite.add(world, body);
-  words.push({ body, text, w, h, color: PALETTE[palIdx++ % PALETTE.length] });
-}
-
-function drawPill(cx, x, y, w, h, r) {
-  cx.beginPath();
-  cx.moveTo(x+r,y); cx.lineTo(x+w-r,y);
-  cx.quadraticCurveTo(x+w,y,   x+w,y+r);
-  cx.lineTo(x+w,y+h-r);
-  cx.quadraticCurveTo(x+w,y+h, x+w-r,y+h);
-  cx.lineTo(x+r,y+h);
-  cx.quadraticCurveTo(x,y+h,   x,y+h-r);
-  cx.lineTo(x,y+r);
-  cx.quadraticCurveTo(x,y,     x+r,y);
-  cx.closePath();
+  words.push({ body, text, w, h, opacity: 1, dying: false });
 }
 
 /* ─── SPEECH ────────────────────────────────────────── */
 let recognition = null, speechActive = false;
 const micDot = document.getElementById('micDot');
-function cleanWord(r) { return r.replace(/[^a-zA-Z'\u2019\-]/g,''); }
+function cleanWord(r) {
+  return r.replace(/[^a-zA-Z0-9'\u2019\-]/g, '');
+}
+function wordsFromTranscript(t) {
+  return t.trim().split(/\s+/).map(cleanWord).filter(w => w.length > CFG.minWordLen);
+}
+
+/* ─── VOICE COMMANDS ────────────────────────────────── */
+const FONT_STEP = 16;
+const FONT_MIN = 14;
+const FONT_MAX = 80;
+
+const COLORS = {
+  white:   '#ffffff', red:     '#ff6b6b', orange:  '#ffab6b',
+  yellow:  '#ffd96b', green:   '#6bffb8', blue:    '#6ba8ff',
+  purple:  '#b96bff', pink:    '#ff6bd6', teal:    '#6bffee',
+  gold:    '#f0c060', coral:   '#ff7f6b', mint:    '#6bffcb',
+  lavender:'#c0a8ff', rose:    '#ff8faf', cyan:    '#6bddff',
+  lime:    '#aaff6b',
+};
+
+let textColor = '#ffffff';
+
+const voiceCommands = [
+  { patterns: [/\bbigger\b/i, /\blarger\b/i, /\bincrease\b/i, /\bbig\b/i], action: 'grow' },
+  { patterns: [/\bsmaller\b/i, /\btiny\b/i, /\bdecrease\b/i, /\bsmall\b/i, /\bshrink\b/i], action: 'shrink' },
+  { patterns: [/\bclear\b/i, /\breset\b/i, /\bclean\b/i], action: 'clear' },
+  ...Object.entries(COLORS).map(([name, hex]) => ({
+    patterns: [new RegExp(`\\b${name}\\b`, 'i')],
+    action: 'color',
+    value: hex,
+  })),
+];
+
+function resizeAllWords() {
+  words.forEach(entry => {
+    const { w: newW, h: newH } = measureWord(entry.text);
+    const sx = newW / entry.w;
+    const sy = newH / entry.h;
+    Body.scale(entry.body, sx, sy);
+    entry.w = newW;
+    entry.h = newH;
+  });
+}
+
+function scatterWords() {
+  words.forEach(entry => {
+    entry.dying = true;
+    const cx = W / 2, cy = H / 2;
+    const dx = entry.body.position.x - cx;
+    const dy = entry.body.position.y - cy;
+    const dist = Math.sqrt(dx * dx + dy * dy) || 1;
+    const strength = 18 + Math.random() * 14;
+    Body.setVelocity(entry.body, {
+      x: (dx / dist) * strength + (Math.random() - 0.5) * 8,
+      y: (dy / dist) * strength * 0.6 - Math.random() * 10,
+    });
+    Body.setAngularVelocity(entry.body, (Math.random() - 0.5) * 0.5);
+    Body.set(entry.body, 'isStatic', false);
+  });
+}
+
+/** Action fired in this utterance — prevents interim from re-firing the same command multiple times. */
+let lastCommandAction = null;
+
+function tryVoiceCommand(transcript, isInterim) {
+  const t = transcript.toLowerCase();
+  for (const cmd of voiceCommands) {
+    for (const pat of cmd.patterns) {
+      if (pat.test(t)) {
+        if (lastCommandAction === cmd.action) return true;
+        lastCommandAction = cmd.action;
+        switch (cmd.action) {
+          case 'grow':
+            CFG.fontSize = Math.min(FONT_MAX, CFG.fontSize + FONT_STEP);
+            resizeAllWords();
+            return true;
+          case 'shrink':
+            CFG.fontSize = Math.max(FONT_MIN, CFG.fontSize - FONT_STEP);
+            resizeAllWords();
+            return true;
+          case 'clear':
+            scatterWords();
+            return true;
+          case 'color':
+            textColor = cmd.value;
+            return true;
+        }
+      }
+    }
+  }
+  return false;
+}
 
 async function startSpeech() {
   const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -376,27 +746,72 @@ async function startSpeech() {
   }
 
   recognition = new SR();
-  recognition.continuous = true; recognition.interimResults = true;
+  recognition.continuous = true;
+  recognition.interimResults = true;
   recognition.lang = 'en-US'; recognition.maxAlternatives = 1;
 
-  let interimSpawned = new Set(), lastTip = '';
+  /** Last interim word list this utterance — finals never re-drop if interim already filled it. */
+  let lastWordsInterim = [];
+  let lastFinalTrim = '';
+  let lastFinalAt = 0;
 
   recognition.onresult = e => {
+    const batch = [];
     for (let i = e.resultIndex; i < e.results.length; i++) {
-      const r = e.results[i], t = r[0].transcript;
-      if (r.isFinal) {
-        dbgSet(dbgFinal, t);
-        t.trim().split(/\s+/).map(cleanWord).filter(w=>w.length>CFG.minWordLen).forEach(w=>{
-          if (!interimSpawned.has(w.toLowerCase())) spawnWord(w);
-        });
-        interimSpawned.clear(); lastTip = '';
-      } else {
+      batch.push(e.results[i]);
+    }
+    /* Same event can list final before interim — processing final first spawns all, then interim spawns again. */
+    batch.sort((a, b) => Number(a.isFinal) - Number(b.isFinal));
+
+    for (let bi = 0; bi < batch.length; bi++) {
+      const r = batch[bi], t = r[0].transcript;
+
+      if (!r.isFinal) {
         dbgSet(dbgInterim, t);
-        const tip = cleanWord(t.trim().split(/\s+/).pop());
-        if (tip.length > CFG.minWordLen && tip.toLowerCase() !== lastTip.toLowerCase()) {
-          spawnWord(tip); interimSpawned.add(tip.toLowerCase()); lastTip = tip;
+        if (tryVoiceCommand(t, true)) {
+          lastWordsInterim = [];
+          continue;
         }
+        const words = wordsFromTranscript(t);
+        if (words.length < lastWordsInterim.length) {
+          lastWordsInterim = words.slice();
+          continue;
+        }
+        if (words.length > lastWordsInterim.length) {
+          for (let j = lastWordsInterim.length; j < words.length; j++) {
+            spawnWord(words[j]);
+          }
+        }
+        lastWordsInterim = words.slice();
+        continue;
       }
+
+      dbgSet(dbgFinal, t);
+      dbgSet(dbgInterim, '—');
+      const trimmed = t.trim();
+      if (!trimmed) {
+        lastWordsInterim = [];
+        continue;
+      }
+      const now = Date.now();
+      if (trimmed === lastFinalTrim && now - lastFinalAt < 450) {
+        continue;
+      }
+      lastFinalTrim = trimmed;
+      lastFinalAt = now;
+
+      const wasCommand = tryVoiceCommand(trimmed, false);
+      lastCommandAction = null;
+      if (wasCommand) {
+        lastWordsInterim = [];
+        continue;
+      }
+
+      const finalWords = wordsFromTranscript(trimmed);
+      if (lastWordsInterim.length === 0) {
+        finalWords.forEach(w => spawnWord(w));
+      }
+      lastWordsInterim = [];
     }
   };
 
@@ -406,6 +821,10 @@ async function startSpeech() {
   };
   recognition.onstart = () => { micDot.style.display='flex'; dbgSet(dbgStatus,'active ✓'); };
   recognition.onend   = () => {
+    lastWordsInterim = [];
+    lastFinalTrim = '';
+    lastFinalAt = 0;
+    lastCommandAction = null;
     if (speechActive) { dbgSet(dbgStatus,'restarting…'); setTimeout(()=>{ if(speechActive) recognition.start(); },300); }
     else { micDot.style.display='none'; dbgSet(dbgStatus,'stopped'); }
   };
@@ -449,22 +868,54 @@ let frame = 0;
   ctx.setTransform(1, 0, 0, 1, 0, 0);
   ctx.globalAlpha = 1;
 
+  // Threshold edge — only while debug panel is open (same place as threshold slider)
+  if (dbgPanel.style.display === 'flex' && terrainEdge.length === numCols && video && video.readyState >= 2) {
+    ctx.save();
+    ctx.strokeStyle = 'rgba(95,232,216,0.92)';
+    ctx.shadowColor = 'rgba(0,0,0,0.55)';
+    ctx.shadowBlur = 4;
+    ctx.lineWidth = 2.25;
+    ctx.lineJoin = 'round';
+    ctx.lineCap = 'round';
+    ctx.beginPath();
+    let pen = false;
+    for (let i = 0; i < numCols; i++) {
+      const y = terrainEdge[i];
+      const x = i * CFG.terrainStep + CFG.terrainStep / 2;
+      if (y < 0 || y > H + 20) { pen = false; continue; }
+      if (!pen) { ctx.moveTo(x, y); pen = true; }
+      else ctx.lineTo(x, y);
+    }
+    ctx.stroke();
+    ctx.restore();
+  }
+
   // Words
   ctx.font = fontStr();
   ctx.textAlign    = 'center';
   ctx.textBaseline = 'middle';
 
-  words = words.filter(({ body, text, w, h, color }) => {
-    if (body.position.y - h/2 > H + 60) { Composite.remove(world, body); return false; }
+  words = words.filter(entry => {
+    const { body, text, w, h } = entry;
+    if (entry.dying) {
+      entry.opacity = Math.max(0, entry.opacity - 0.035);
+      if (entry.opacity <= 0 ||
+          body.position.x < -W || body.position.x > 2 * W ||
+          body.position.y < -H || body.position.y > 2 * H) {
+        Composite.remove(world, body);
+        return false;
+      }
+    } else {
+      if (body.position.y - h / 2 > H + 60) { Composite.remove(world, body); return false; }
+    }
     const { x, y } = body.position;
     ctx.save();
     ctx.translate(x, y);
     ctx.rotate(body.angle);
-    ctx.fillStyle = 'rgba(8,8,8,0.72)';
-    drawPill(ctx, -w/2, -h/2, w, h, h/2);
-    ctx.fill();
-    ctx.fillStyle = color;
+    ctx.globalAlpha = entry.opacity;
+    ctx.fillStyle = textColor;
     ctx.fillText(text, 0, 0);
+    ctx.globalAlpha = 1;
     ctx.restore();
     return true;
   });
@@ -472,48 +923,227 @@ let frame = 0;
 })();
 
 /* ─── RESIZE ────────────────────────────────────────── */
+let resizeRaf = 0;
 window.addEventListener('resize', () => {
-  resize();
-  buildBoundaries();
-  initTerrain();
-  computeVideoFit();
-  if (aCanvas) { aCanvas.width = W; aCanvas.height = H; }
-});
+  if (resizeRaf) cancelAnimationFrame(resizeRaf);
+  resizeRaf = requestAnimationFrame(() => {
+    resizeRaf = 0;
+    resize();
+    buildBoundaries();
+    initTerrain();
+    if (aCanvas) {
+      const as = CFG.analysisScale;
+      aCanvas.width = Math.max(1, Math.floor(W * as));
+      aCanvas.height = Math.max(1, Math.floor(H * as));
+    }
+    computeVideoFit();
+  });
+}, { passive: true });
 
 /* ─── START ─────────────────────────────────────────── */
 const overlay     = document.getElementById('overlay');
 const startBtn    = document.getElementById('startBtn');
-const controls    = document.getElementById('controls');
 const threshRange = document.getElementById('threshRange');
 const clearBtn    = document.getElementById('clearBtn');
+const threshValue = document.getElementById('threshValue');
+const dbgShow     = document.getElementById('dbgShow');
+
+function updateThreshViz() {
+  threshValue.textContent = String(+threshRange.value);
+}
+
+const loadOverlay = document.getElementById('loadOverlay');
+const SVG_NS = 'http://www.w3.org/2000/svg';
+const menuGroup = document.getElementById('menuGroup');
+const menuPath = document.getElementById('menuPath');
+const loaderGroup = document.getElementById('loaderGroup');
+const loaderPath = document.getElementById('loaderPath');
+const menuSpiral = { path: menuPath, group: menuGroup, particles: [], ready: false };
+const loadSpiral = { path: loaderPath, group: loaderGroup, particles: [], ready: false };
+
+/** Four-Petal Spiral — u(t) hypotrochoid-style; m(t) scale + breath (math-curve-loaders). */
+const loaderConfig = {
+  particleCount: 84,
+  trailSpan: 0.34,
+  durationMs: 4600,
+  rotationDurationMs: 28000,
+  pulseDurationMs: 4200,
+  strokeWidth: 4.4,
+  spiralR: 4,
+  spiralr: 1,
+  spirald: 3,
+  spiralScale: 2.2,
+  spiralBreath: 0.45,
+  rotate: true,
+};
+
+let spiralRafId = 0;
+let spiralStartedAt = 0;
+
+function loaderPoint(progress, detailScale, cfg) {
+  const t = progress * Math.PI * 2;
+  const d = cfg.spirald + detailScale * 0.25;
+  const baseX = (cfg.spiralR - cfg.spiralr) * Math.cos(t) + d * Math.cos(((cfg.spiralR - cfg.spiralr) / cfg.spiralr) * t);
+  const baseY = (cfg.spiralR - cfg.spiralr) * Math.sin(t) - d * Math.sin(((cfg.spiralR - cfg.spiralr) / cfg.spiralr) * t);
+  const scale = cfg.spiralScale + detailScale * cfg.spiralBreath;
+  return { x: 50 + baseX * scale, y: 50 + baseY * scale };
+}
+
+function loaderNormalizeProgress(progress) {
+  return ((progress % 1) + 1) % 1;
+}
+
+function loaderGetDetailScale(time) {
+  const pulseProgress = (time % loaderConfig.pulseDurationMs) / loaderConfig.pulseDurationMs;
+  const pulseAngle = pulseProgress * Math.PI * 2;
+  return 0.52 + ((Math.sin(pulseAngle + 0.55) + 1) / 2) * 0.48;
+}
+
+function loaderGetRotation(time) {
+  if (!loaderConfig.rotate) return 0;
+  return -((time % loaderConfig.rotationDurationMs) / loaderConfig.rotationDurationMs) * 360;
+}
+
+function loaderBuildPath(detailScale, steps) {
+  steps = steps === undefined ? 480 : steps;
+  return Array.from({ length: steps + 1 }, (_, index) => {
+    const point = loaderPoint(index / steps, detailScale, loaderConfig);
+    return `${index === 0 ? 'M' : 'L'} ${point.x.toFixed(2)} ${point.y.toFixed(2)}`;
+  }).join(' ');
+}
+
+function loaderGetParticle(index, progress, detailScale) {
+  const tailOffset = index / Math.max(loaderConfig.particleCount - 1, 1);
+  const point = loaderPoint(
+    loaderNormalizeProgress(progress - tailOffset * loaderConfig.trailSpan),
+    detailScale,
+    loaderConfig
+  );
+  const fade = Math.pow(1 - tailOffset, 0.56);
+  return {
+    x: point.x,
+    y: point.y,
+    radius: 0.9 + fade * 2.7,
+    opacity: 0.04 + fade * 0.96,
+  };
+}
+
+function initSpiral(inst) {
+  if (inst.ready) return;
+  inst.path.setAttribute('stroke-width', String(loaderConfig.strokeWidth));
+  for (let i = 0; i < loaderConfig.particleCount; i++) {
+    const circle = document.createElementNS(SVG_NS, 'circle');
+    circle.setAttribute('fill', 'currentColor');
+    inst.group.appendChild(circle);
+    inst.particles.push(circle);
+  }
+  inst.ready = true;
+}
+
+function updateSpiralInstance(inst, progress, detailScale, rotationStr, pathD) {
+  if (!inst.ready) return;
+  inst.group.setAttribute('transform', rotationStr);
+  inst.path.setAttribute('d', pathD);
+  inst.particles.forEach((node, index) => {
+    const particle = loaderGetParticle(index, progress, detailScale);
+    node.setAttribute('cx', particle.x.toFixed(2));
+    node.setAttribute('cy', particle.y.toFixed(2));
+    node.setAttribute('r', particle.radius.toFixed(2));
+    node.setAttribute('opacity', particle.opacity.toFixed(3));
+  });
+}
+
+function renderSpiralFrame(now) {
+  const time = now - spiralStartedAt;
+  const progress = (time % loaderConfig.durationMs) / loaderConfig.durationMs;
+  const detailScale = loaderGetDetailScale(time);
+  const rotationStr = `rotate(${loaderGetRotation(time)} 50 50)`;
+  const pathD = loaderBuildPath(detailScale);
+  updateSpiralInstance(menuSpiral, progress, detailScale, rotationStr, pathD);
+  updateSpiralInstance(loadSpiral, progress, detailScale, rotationStr, pathD);
+  spiralRafId = requestAnimationFrame(renderSpiralFrame);
+}
+
+function startMenuSpiral() {
+  initSpiral(menuSpiral);
+  spiralStartedAt = performance.now();
+  if (spiralRafId) return;
+  spiralRafId = requestAnimationFrame(renderSpiralFrame);
+}
+
+function startLoaderAnim() {
+  initSpiral(loadSpiral);
+  if (!spiralRafId) {
+    spiralStartedAt = performance.now();
+    spiralRafId = requestAnimationFrame(renderSpiralFrame);
+  }
+}
+
+function stopLoaderAnim() {
+  if (spiralRafId) cancelAnimationFrame(spiralRafId);
+  spiralRafId = 0;
+}
+
+startMenuSpiral();
+
+function sleep(ms) {
+  return new Promise(r => setTimeout(r, ms));
+}
 
 startBtn.addEventListener('click', async () => {
-  overlay.style.display   = 'none';
-  dbgPanel.style.display  = 'flex';
-  controls.style.display  = 'flex';
-  clearBtn.style.display  = 'block';
+  if (startBtn.disabled) return;
+  startBtn.disabled = true;
 
-  const speechP = startSpeech();   // start early, stays within gesture context
+  loadOverlay.style.display = 'flex';
+  loadOverlay.classList.remove('loadOverlay--visible');
+  void loadOverlay.offsetWidth;
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      loadOverlay.classList.add('loadOverlay--visible');
+      overlay.classList.add('overlay--exit');
+    });
+  });
+  startLoaderAnim();
+  await sleep(440);
+
+  overlay.style.display = 'none';
+  overlay.classList.remove('overlay--exit');
+
+  const speechP = startSpeech();
 
   try { await startCamera(); }
   catch(e) { dbgSet(dbgStatus, `cam fail: ${e.message}`, true); }
 
   await speechP;
   setupTilt();
+
+  stopLoaderAnim();
+  loadOverlay.classList.remove('loadOverlay--visible');
+  await sleep(440);
+  loadOverlay.style.display = 'none';
+  loadOverlay.setAttribute('aria-busy', 'false');
+  dbgPanel.style.display = 'flex';
+  dbgShow.style.display = 'none';
 });
 
-threshRange.addEventListener('input', () => { CFG.threshold = +threshRange.value; });
-clearBtn.addEventListener('click', () => { words.forEach(({body})=>Composite.remove(world,body)); words=[]; });
+threshRange.addEventListener('input', () => {
+  CFG.threshold = +threshRange.value;
+  updateThreshViz();
+});
+updateThreshViz();
+clearBtn.addEventListener('click', () => scatterWords());
 
 document.getElementById('dbgSpawn').addEventListener('click', () => {
   spawnWord('hello'); spawnWord('world'); dbgSet(dbgStatus,'spawned test words');
 });
-document.getElementById('dbgFlip').addEventListener('click', () => {
-  rotDir *= -1;
-  computeVideoFit();  // recompute fit label
-  dbgSet(dbgStatus, `cam rotation flipped → ${rotDir===1?'CW':'CCW'}`);
+document.getElementById('dbgHide').addEventListener('click', () => {
+  dbgPanel.style.display = 'none';
+  dbgShow.style.display = 'block';
 });
-document.getElementById('dbgHide').addEventListener('click', () => { dbgPanel.style.display='none'; });
+dbgShow.addEventListener('click', () => {
+  dbgPanel.style.display = 'flex';
+  dbgShow.style.display = 'none';
+});
 </script>
 </body>
 </html>
