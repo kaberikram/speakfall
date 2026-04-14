@@ -19,19 +19,22 @@
     }
     #canvas { display: block; position: fixed; inset: 0; width: 100%; height: 100%; }
 
-    /* overlay — warm radial like Claude marketing */
+    /* overlay — dark vignette so camera shows through in the centre */
     #overlay {
       position: fixed; inset: 0; display: flex; flex-direction: column;
       align-items: center; justify-content: center;
       z-index: 20;
       font-family: 'EB Garamond', Georgia, serif;
-      text-align: center; padding: 2.5rem;
-      background:
-        radial-gradient(ellipse 130% 90% at 50% -8%, rgba(255, 200, 160, 0.95) 0%, rgba(255, 228, 210, 0.55) 28%, transparent 58%),
-        radial-gradient(ellipse 100% 70% at 50% 100%, rgba(255, 245, 238, 0.9) 0%, transparent 55%),
-        radial-gradient(circle at 50% 42%, #fffefb 0%, #fff9f4 42%, #f7f2ec 100%);
+      color: #fff; text-align: center; padding: 2.5rem;
+      background: linear-gradient(
+        to bottom,
+        rgba(6,4,3,0.84) 0%,
+        rgba(6,4,3,0.36) 38%,
+        rgba(6,4,3,0.36) 62%,
+        rgba(6,4,3,0.88) 100%
+      );
       opacity: 1;
-      transition: opacity 0.42s ease;
+      transition: opacity 0.55s ease;
       will-change: opacity;
     }
     #overlay.overlay--exit {
@@ -39,39 +42,66 @@
       pointer-events: none;
     }
     .menu-logo {
-      width: min(22vw, 92px);
-      height: min(22vw, 92px);
-      margin-bottom: 0.35rem;
+      width: min(20vw, 80px);
+      height: min(20vw, 80px);
+      margin-bottom: .5rem;
     }
     #menuSvg {
-      width: 100%;
-      height: 100%;
+      width: 100%; height: 100%;
       overflow: visible;
-      color: #8b7355;
+      color: rgba(255,255,255,0.55);
     }
     #overlay h1 {
       font-size: clamp(2.5rem, 9vw, 3.5rem); font-weight: 400;
-      letter-spacing: .02em; margin-bottom: .75rem;
-      color: #2c2825;
+      letter-spacing: .04em;
+      color: #fff;
+      text-shadow: 0 2px 28px rgba(0,0,0,0.9);
     }
-    #overlay p  {
+    #ovSub {
+      margin-top: .6rem;
       font-size: clamp(1rem, 3.8vw, 1.2rem);
-      color: #6b6560;
-      max-width: 320px; line-height: 1.65;
+      font-style: italic;
+      color: rgba(255,255,255,.72);
+      text-shadow: 0 1px 16px rgba(0,0,0,0.85);
     }
+    #ovHints {
+      margin-top: 2.4rem;
+      display: flex; flex-direction: column; gap: .5rem;
+      opacity: 0; transition: opacity 0.9s ease;
+    }
+    #ovHints p {
+      font-size: clamp(.78rem, 2.9vw, .92rem);
+      color: rgba(255,255,255,.42);
+      line-height: 1.55; letter-spacing: .01em;
+      text-shadow: 0 1px 12px rgba(0,0,0,0.9);
+      font-family: 'DM Sans', system-ui, sans-serif;
+    }
+    #ovHints em { font-style: italic; color: rgba(255,255,255,.6); }
     #startBtn {
-      margin-top: 2.5rem; padding: .95rem 2.75rem;
-      background: #fff;
-      color: #2c2825;
-      border: 1px solid rgba(44, 40, 37, 0.12);
-      border-radius: 999px;
-      font-family: 'EB Garamond', Georgia, serif; font-size: 1.2rem;
-      letter-spacing: .03em;
+      margin-top: 3rem; padding: .9rem 2.75rem;
+      background: rgba(255,255,255,0.95);
+      color: #1a1714;
+      border: none; border-radius: 999px;
+      font-family: 'EB Garamond', Georgia, serif; font-size: 1.15rem;
+      letter-spacing: .05em;
       cursor: pointer; -webkit-tap-highlight-color: transparent;
-      box-shadow: 0 2px 16px rgba(44, 40, 37, 0.08), 0 1px 2px rgba(44, 40, 37, 0.04);
+      box-shadow: 0 4px 24px rgba(0,0,0,0.35);
+      opacity: 0; transition: opacity 0.7s ease;
     }
-    #startBtn:active {
-      background: #faf8f5;
+    #startBtn.vis { opacity: 1; }
+    #startBtn:active { background: #f0eee9; }
+
+    /* per-character blur-fade */
+    .sc {
+      display: inline-block;
+      opacity: 0; filter: blur(6px); transform: translateY(10px);
+      will-change: opacity, filter, transform;
+      transition: opacity .55s ease, filter .55s ease, transform .55s ease;
+    }
+    .sc.vis { opacity: 1; filter: blur(0); transform: translateY(0); }
+    @media (prefers-reduced-motion: reduce) {
+      .sc { opacity:1 !important; filter:none !important; transform:none !important; transition:none !important; }
+      #startBtn, #ovHints { opacity:1 !important; }
     }
 
     #debug .dbg-thresh {
@@ -270,10 +300,7 @@
       justify-content: center;
       gap: 1.25rem;
       padding: 2rem;
-      background:
-        radial-gradient(ellipse 130% 90% at 50% -8%, rgba(255, 200, 160, 0.95) 0%, rgba(255, 228, 210, 0.55) 28%, transparent 58%),
-        radial-gradient(ellipse 100% 70% at 50% 100%, rgba(255, 245, 238, 0.9) 0%, transparent 55%),
-        radial-gradient(circle at 50% 42%, #fffefb 0%, #fff9f4 42%, #f7f2ec 100%);
+      background: rgba(6,4,3,0.82);
       pointer-events: none;
       opacity: 0;
       transition: opacity 0.42s ease;
@@ -286,8 +313,8 @@
     #loadOverlay p {
       font-family: 'DM Sans', system-ui, sans-serif;
       font-size: 14px;
-      font-weight: 500;
-      color: #6b6560;
+      font-weight: 400;
+      color: rgba(255,255,255,0.52);
       letter-spacing: 0.02em;
       text-align: center;
       max-width: 260px;
@@ -304,7 +331,7 @@
       width: 100%;
       height: 100%;
       overflow: visible;
-      color: #8b7355;
+      color: rgba(255,255,255,0.65);
     }
   </style>
 </head>
@@ -316,13 +343,18 @@
   <div class="menu-logo" aria-hidden="true">
     <svg id="menuSvg" viewBox="0 0 100 100" fill="none">
       <g id="menuGroup">
-        <path id="menuPath" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" opacity="0.14"></path>
+        <path id="menuPath" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" opacity="0.18"></path>
       </g>
     </svg>
   </div>
-  <h1>Speakfall</h1>
-  <p>Stand in front of a light wall or window.<br>Speak — your words will fall.</p>
-  <button id="startBtn">Tap to Begin</button>
+  <h1 id="ovTitle">Speakfall</h1>
+  <p id="ovSub">Speak something.</p>
+  <div id="ovHints">
+    <p>Your words fall. They land on you.</p>
+    <p>Tilt your phone — gravity follows.</p>
+    <p>Tap <em>clear</em> to start over.</p>
+  </div>
+  <button id="startBtn">Begin</button>
 </div>
 
 <div id="loadOverlay" aria-live="polite" aria-busy="true">
@@ -1090,6 +1122,31 @@ function sleep(ms) {
   return new Promise(r => setTimeout(r, ms));
 }
 
+/* ─── OVERLAY ANIMATION ─────────────────────────────── */
+function splitBlurFade(el, startMs, stagger) {
+  stagger = stagger === undefined ? 42 : stagger;
+  el.innerHTML = el.textContent.split('').map(function(c) {
+    return '<span class="sc">' + (c === ' ' ? '&nbsp;' : c) + '</span>';
+  }).join('');
+  var chars = Array.from(el.querySelectorAll('.sc'));
+  chars.forEach(function(c, i) { setTimeout(function() { c.classList.add('vis'); }, startMs + i * stagger); });
+  return startMs + chars.length * stagger + 560;
+}
+
+(function animateOverlay() {
+  var t1 = splitBlurFade(document.getElementById('ovTitle'), 300, 44);
+  var t2 = splitBlurFade(document.getElementById('ovSub'),   t1 - 340, 34);
+  setTimeout(function() { document.getElementById('ovHints').style.opacity = '1'; }, t2 - 80);
+  setTimeout(function() { startBtn.classList.add('vis'); }, t2 + 200);
+})();
+
+/* Best-effort early camera — works on return visits where iOS has cached permission.
+   Silently swallowed if denied; the tap handler will retry. */
+let cameraReady = false;
+(async function tryEarlyCamera() {
+  try { await startCamera(); cameraReady = true; } catch(e) { /* silent */ }
+})();
+
 startBtn.addEventListener('click', async () => {
   if (startBtn.disabled) return;
   startBtn.disabled = true;
@@ -1111,8 +1168,10 @@ startBtn.addEventListener('click', async () => {
 
   const speechP = startSpeech();
 
-  try { await startCamera(); }
-  catch(e) { dbgSet(dbgStatus, `cam fail: ${e.message}`, true); }
+  if (!cameraReady) {
+    try { await startCamera(); cameraReady = true; }
+    catch(e) { dbgSet(dbgStatus, `cam fail: ${e.message}`, true); }
+  }
 
   await speechP;
   setupTilt();
