@@ -384,8 +384,8 @@
     </div>
   </div>
   <div class="dbg-thresh">
-    <label for="threshRange">Brightness <span id="threshValue">110</span></label>
-    <input type="range" id="threshRange" min="40" max="240" value="110"
+    <label for="threshRange">Brightness <span id="threshValue">50</span></label>
+    <input type="range" id="threshRange" min="40" max="240" value="50"
       title="Slide along dark → light. Pixels darker than this value become ground.">
   </div>
   <div class="btns">
@@ -404,9 +404,9 @@ const CFG = {
   gravity: 1.2, restitution: 0.22, friction: 0.60, frictionAir: 0.009,
   cameraAlpha: 0.92,
   fontFamily: '"EB Garamond", Georgia, serif',
-  fontSize: 30, padH: 16, padV: 8,
+  fontSize: 36, padH: 16, padV: 8,
   terrainStep: 8, terrainInterval: 4, terrainH: 14,
-  threshold: 110, maxWords: 30, minWordLen: 0,
+  threshold: 50, maxWords: 30, minWordLen: 0,
   /** Terrain scan resolution (0.5 = half res → ~4× fewer pixels read per getImageData). */
   analysisScale: 0.5,
 };
